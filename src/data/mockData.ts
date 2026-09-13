@@ -73,7 +73,6 @@ export const mockSkillBreakdown: SkillCategoryScore[] = [
   { category: 'Data & AI', score: 76, benchmark: 68 },
   { category: 'Communication', score: 88, benchmark: 72 },
   { category: 'Problem Solving', score: 85, benchmark: 78 },
-  { category: 'Leadership & Collab', score: 80, benchmark: 70 },
   { category: 'System Architecture', score: 64, benchmark: 74 }
 ];
 
@@ -162,732 +161,7 @@ export const mockCareerPathRoadmap: CareerPathNode[] = [
 ];
 
 export const mockOpportunities: Opportunity[] = [
-  // 1. AI/ML Engineering Intern (TechNova)
-  {
-    id: 'opp-1',
-    type: 'internship',
-    title: 'AI/ML Engineering Intern',
-    organization: 'TechNova Solutions',
-    logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-    location: 'Hyderabad, India',
-    workMode: 'Hybrid',
-    requiredSkills: ['Python', 'PyTorch', 'SQL', 'FastAPI', 'Machine Learning'],
-    preferredSkills: ['Docker', 'Vector Embeddings', 'Git'],
-    salaryOrStipend: '₹25,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '25 Sep 2026',
-    matchPercentage: 94,
-    description: 'TechNova Solutions is looking for ambitious AI/ML interns to assist our enterprise AI innovation team in developing generative assistants and predictive models for customer telemetry.',
-    responsibilities: [
-      'Build and fine-tune NLP models for unstructured document classification',
-      'Optimize data pipelines fetching data from PostgreSQL and Snowflake',
-      'Implement FastAPI microservices wrapped in Docker containers',
-      'Collaborate with Senior ML Engineers and Product Managers during bi-weekly sprints'
-    ],
-    eligibility: 'B.Tech in Computer Science & Engineering, AI & Data Science, or Information Technology graduating in 2026/2027 with minimum 7.5 CGPA.',
-    applicantsCount: 142,
-    postedDate: '2 days ago',
-    isSaved: true,
-    appliedStatus: 'applied',
-    careerRoleIds: ['ai-ml-engineer', 'data-scientist', 'nlp-engineer'],
-    targetRoles: ['AI & Machine Learning Engineer', 'Data Scientist', 'GenAI & NLP Specialist'],
-    eligibleBranches: ['Computer Science & Engineering', 'Artificial Intelligence & Data Science', 'Information Technology'],
-    companyDetails: {
-      size: '1,200+ employees',
-      industry: 'Enterprise Software & AI',
-      website: 'https://technovasolutions.io',
-      rating: 4.6
-    }
-  },
-  // 2. SDE-1 Full Stack (TechNova)
-  {
-    id: 'opp-2',
-    type: 'job',
-    title: 'Software Development Engineer - I (Frontend/Full Stack)',
-    organization: 'TechNova Solutions',
-    logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'Hybrid',
-    requiredSkills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Tailwind CSS'],
-    preferredSkills: ['Next.js', 'GraphQL', 'AWS'],
-    salaryOrStipend: '₹14,50,000 - ₹18,00,000 / annum',
-    experience: 'Fresher to 1 Year',
-    deadline: '15 Oct 2026',
-    matchPercentage: 92,
-    description: 'Join our flagship SaaS platform team architecting low-latency dashboard interfaces and high-throughput collaboration workflows.',
-    responsibilities: [
-      'Build responsive, highly accessible React interfaces with TypeScript and Tailwind CSS',
-      'Design clean REST and GraphQL backend services in Node.js',
-      'Write comprehensive unit and integration tests with Jest and Playwright',
-      'Participate in code reviews, architectural discussions, and agile planning'
-    ],
-    eligibility: 'B.Tech in Computer Science & Engineering, Information Technology, or AI & Data Science with strong algorithmic foundation.',
-    applicantsCount: 310,
-    postedDate: '3 days ago',
-    isSaved: true,
-    appliedStatus: 'interview',
-    careerRoleIds: ['fullstack-engineer', 'frontend-engineer', 'backend-engineer'],
-    targetRoles: ['Full Stack Software Engineer', 'Frontend Engineer', 'Backend Systems Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science'],
-    companyDetails: {
-      size: '1,200+ employees',
-      industry: 'Enterprise Software & AI',
-      website: 'https://technovasolutions.io',
-      rating: 4.6
-    }
-  },
-  // 3. Cloud DevOps & Platform Intern (Microsoft)
-  {
-    id: 'opp-3',
-    type: 'internship',
-    title: 'Cloud DevOps & Platform Intern',
-    organization: 'Microsoft',
-    logo: 'https://images.unsplash.com/photo-1642132652859-3ef5a1048fd1?w=100&auto=format&fit=crop&q=80',
-    location: 'Hyderabad / Bangalore',
-    workMode: 'Hybrid',
-    requiredSkills: ['Linux', 'Python', 'Azure / AWS', 'Docker', 'Networking'],
-    preferredSkills: ['Terraform', 'Kubernetes', 'GitHub Actions'],
-    salaryOrStipend: '₹50,000 / month',
-    duration: '3 Months (May - July 2026)',
-    deadline: '30 Sep 2026',
-    matchPercentage: 88,
-    description: 'Gain hands-on immersion with Azure Cloud Infrastructure engineering teams building planetary-scale developer platforms.',
-    responsibilities: [
-      'Automate cloud infrastructure testing pipelines using Python and Bash scripts',
-      'Construct CI/CD deployment workflows with GitHub Actions',
-      'Monitor container clusters with Prometheus and Grafana dashboards',
-      'Perform security audits on cloud storage buckets and access policies'
-    ],
-    eligibility: 'B.Tech in CSE, IT, or ECE graduating in 2026/2027 with minimum 8.0 CGPA and solid understanding of OS and Networking.',
-    applicantsCount: 520,
-    postedDate: '5 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['cloud-devops-engineer', 'site-reliability-engineer'],
-    targetRoles: ['Cloud & DevOps Engineer', 'Site Reliability Engineer (SRE)'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '220,000+ employees',
-      industry: 'Cloud Computing & Enterprise Technology',
-      website: 'https://microsoft.com',
-      rating: 4.8
-    }
-  },
-  // 4. Associate Data & Analytics Consultant (Deloitte)
-  {
-    id: 'opp-4',
-    type: 'job',
-    title: 'Associate Data & Analytics Consultant',
-    organization: 'Deloitte',
-    logo: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&auto=format&fit=crop&q=80',
-    location: 'Mumbai / Gurgaon',
-    workMode: 'On-site',
-    requiredSkills: ['SQL', 'Python', 'Power BI / Tableau', 'Data Modeling', 'Communication'],
-    preferredSkills: ['Snowflake', 'BigQuery', 'Financial Modeling'],
-    salaryOrStipend: '₹9,50,000 - ₹12,00,000 / annum',
-    experience: 'Fresher (Campus 2026)',
-    deadline: '10 Oct 2026',
-    matchPercentage: 89,
-    description: 'Help global Fortune 500 enterprises transform raw operational datasets into actionable executive insights, automated forecasting models, and regulatory compliance dashboards.',
-    responsibilities: [
-      'Formulate complex SQL queries and ETL scripts for high-volume enterprise pipelines',
-      'Develop interactive executive dashboards in Power BI and Tableau',
-      'Perform statistical data validation, trend forecasting, and anomaly detection',
-      'Present findings directly to client stakeholders and consulting partners'
-    ],
-    eligibility: 'B.Tech across CSE, IT, AI & DS, ECE or any engineering branch with strong analytical skills and minimum 7.0 CGPA.',
-    applicantsCount: 418,
-    postedDate: '4 days ago',
-    isSaved: false,
-    appliedStatus: 'shortlisted',
-    careerRoleIds: ['data-scientist', 'data-engineer'],
-    targetRoles: ['Data Scientist', 'Big Data Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science', 'Electronics & Communication Engineering', 'All B.Tech Branches'],
-    companyDetails: {
-      size: '450,000+ employees',
-      industry: 'Management & Technology Consulting',
-      website: 'https://deloitte.com',
-      rating: 4.5
-    }
-  },
-  // 5. Cybersecurity Threat Analyst (Cisco)
-  {
-    id: 'opp-5',
-    type: 'job',
-    title: 'Cybersecurity Threat Analyst',
-    organization: 'Cisco Systems',
-    logo: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'Hybrid',
-    requiredSkills: ['Network Security', 'Linux', 'Python', 'Wireshark', 'SIEM Tools'],
-    preferredSkills: ['Penetration Testing', 'Cryptography', 'CompTIA Security+'],
-    salaryOrStipend: '₹13,00,000 - ₹16,50,000 / annum',
-    experience: 'Fresher to 1 Year',
-    deadline: '05 Nov 2026',
-    matchPercentage: 74,
-    description: 'Defend critical enterprise networks from zero-day exploits, analyze malware telemetry, and configure threat response automations.',
-    responsibilities: [
-      'Monitor Security Information and Event Management (SIEM) alerts for anomalies',
-      'Perform packet level inspection and forensic incident analysis',
-      'Script defensive response automations in Python to patch vulnerabilities',
-      'Write vulnerability mitigation briefings for enterprise security officers'
-    ],
-    eligibility: 'B.Tech in Computer Science, Information Technology, or Electronics & Communication Engineering graduating in 2026.',
-    applicantsCount: 220,
-    postedDate: '1 week ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['cybersecurity-analyst'],
-    targetRoles: ['Cybersecurity Analyst & Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '80,000+ employees',
-      industry: 'Networking & Cybersecurity',
-      website: 'https://cisco.com',
-      rating: 4.7
-    }
-  },
-  // 6. Full Stack Web Developer (Razorpay)
-  {
-    id: 'opp-9',
-    type: 'job',
-    title: 'Full Stack Engineer - Payment Experience',
-    organization: 'Razorpay',
-    logo: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore / Hybrid',
-    workMode: 'Hybrid',
-    requiredSkills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Redis'],
-    preferredSkills: ['Next.js', 'Kafka', 'Docker'],
-    salaryOrStipend: '₹18,00,000 - ₹22,00,000 / annum',
-    experience: 'Fresher (2026 Batch)',
-    deadline: '28 Oct 2026',
-    matchPercentage: 91,
-    description: 'Scale payment checkout gateways handling over 10,000 transactions per second. Build resilient UI widgets and secure financial microservices.',
-    responsibilities: [
-      'Architect fast, low-friction checkout React components loaded by millions of consumers',
-      'Develop idempotent payment processing services with Node.js and PostgreSQL',
-      'Set up caching layers and circuit breakers with Redis'
-    ],
-    eligibility: 'B.Tech in CSE or IT with high proficiency in JavaScript/TypeScript and database systems.',
-    applicantsCount: 284,
-    postedDate: '4 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['fullstack-engineer', 'backend-engineer', 'frontend-engineer'],
-    targetRoles: ['Full Stack Software Engineer', 'Backend Systems Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology'],
-    companyDetails: {
-      size: '3,000+ employees',
-      industry: 'Fintech & Payments',
-      website: 'https://razorpay.com',
-      rating: 4.5
-    }
-  },
-  // 7. Frontend Engineering Intern (Swiggy)
-  {
-    id: 'opp-10',
-    type: 'internship',
-    title: 'Frontend Engineering Intern (Consumer Web)',
-    organization: 'Swiggy',
-    logo: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'Hybrid',
-    requiredSkills: ['React', 'TypeScript', 'Tailwind CSS', 'Redux', 'Web Performance'],
-    preferredSkills: ['Next.js', 'Jest', 'Figma to Code'],
-    salaryOrStipend: '₹40,000 / month',
-    duration: '6 Months (Jan - June 2026)',
-    deadline: '12 Oct 2026',
-    matchPercentage: 95,
-    description: 'Work alongside leading consumer engineers optimizing real-time order tracking, sub-second web render times, and responsive mobile-web experiences.',
-    responsibilities: [
-      'Build performant React components with sub-second First Contentful Paint',
-      'Manage global state with Redux Toolkit and optimize re-renders',
-      'Implement accessible design system components adhering to WCAG 2.1'
-    ],
-    eligibility: 'B.Tech in Computer Science & Engineering, Information Technology, or AI & Data Science graduating in 2026 or 2027.',
-    applicantsCount: 380,
-    postedDate: '3 days ago',
-    isSaved: true,
-    appliedStatus: null,
-    careerRoleIds: ['frontend-engineer', 'fullstack-engineer', 'ui-ux-designer'],
-    targetRoles: ['Frontend Engineer - React & UI', 'Full Stack Software Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science'],
-    companyDetails: {
-      size: '6,000+ employees',
-      industry: 'Hyperlocal Delivery & Consumer Tech',
-      website: 'https://swiggy.com',
-      rating: 4.4
-    }
-  },
-  // 8. Graduate Data Scientist (Fractal Analytics)
-  {
-    id: 'opp-11',
-    type: 'job',
-    title: 'Associate Data Scientist',
-    organization: 'Fractal Analytics',
-    logo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&auto=format&fit=crop&q=80',
-    location: 'Mumbai / Bangalore',
-    workMode: 'Hybrid',
-    requiredSkills: ['Python', 'SQL', 'Scikit-Learn', 'Statistics', 'Data Visualization'],
-    preferredSkills: ['PyTorch', 'MLflow', 'Tableau'],
-    salaryOrStipend: '₹12,00,000 - ₹15,00,000 / annum',
-    experience: 'Fresher (Campus 2026)',
-    deadline: '22 Oct 2026',
-    matchPercentage: 90,
-    description: 'Build predictive machine learning models and experimentation pipelines for Fortune 500 healthcare and retail clients.',
-    responsibilities: [
-      'Perform exploratory data analysis and feature engineering on petabyte datasets',
-      'Train, validate, and benchmark supervised and unsupervised ML algorithms',
-      'Collaborate with engineering teams to deploy models via REST APIs'
-    ],
-    eligibility: 'B.Tech in CSE, AI & DS, IT, or ECE with strong statistical foundation and coding skills.',
-    applicantsCount: 215,
-    postedDate: '5 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['data-scientist', 'ai-ml-engineer'],
-    targetRoles: ['Data Scientist', 'AI & Machine Learning Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Artificial Intelligence & Data Science', 'Information Technology', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '4,500+ employees',
-      industry: 'AI & Enterprise Analytics',
-      website: 'https://fractal.ai',
-      rating: 4.5
-    }
-  },
-  // 9. Generative AI & NLP Research Intern (Google Research)
-  {
-    id: 'opp-12',
-    type: 'internship',
-    title: 'Generative AI & LLM Research Intern',
-    organization: 'Google Research India',
-    logo: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'On-site',
-    requiredSkills: ['Python', 'PyTorch', 'Transformers', 'LLMs', 'Algorithms'],
-    preferredSkills: ['JAX', 'CUDA', 'Research Papers'],
-    salaryOrStipend: '₹75,000 / month',
-    duration: '6 Months',
-    deadline: '01 Nov 2026',
-    matchPercentage: 86,
-    description: 'Investigate reasoning capabilities, multilingual alignment, and retrieval-augmented generation in next-generation transformer models.',
-    responsibilities: [
-      'Conduct rigorous benchmarks on domain-specific LLM reasoning datasets',
-      'Implement prompt distillation and parameter-efficient fine-tuning (PEFT)',
-      'Publish research findings in top-tier conferences (NeurIPS/ACL/EMNLP)'
-    ],
-    eligibility: 'B.Tech/Dual Degree students in CSE or AI & Data Science with proven deep learning projects and high academic standing (>8.5 CGPA).',
-    applicantsCount: 460,
-    postedDate: '1 week ago',
-    isSaved: true,
-    appliedStatus: null,
-    careerRoleIds: ['nlp-engineer', 'ai-ml-engineer', 'data-scientist'],
-    targetRoles: ['GenAI & NLP Specialist', 'AI & Machine Learning Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Artificial Intelligence & Data Science'],
-    companyDetails: {
-      size: '180,000+ employees',
-      industry: 'AI & Technology Research',
-      website: 'https://research.google',
-      rating: 4.9
-    }
-  },
-  // 10. Embedded Firmware Engineering Intern (Texas Instruments) - ECE / EEE
-  {
-    id: 'opp-15',
-    type: 'internship',
-    title: 'Embedded Firmware & Microcontroller Intern',
-    organization: 'Texas Instruments',
-    logo: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'On-site',
-    requiredSkills: ['Embedded C', 'ARM Cortex-M', 'I2C/SPI/UART', 'RTOS', 'Oscilloscopes'],
-    preferredSkills: ['C++', 'Python Scripting', 'PCB Debugging'],
-    salaryOrStipend: '₹45,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '18 Oct 2026',
-    matchPercentage: 84,
-    description: 'Work with Texas Instruments microcontroller division developing low-power device drivers, hardware abstraction layers, and sensor interfaces for industrial automation.',
-    responsibilities: [
-      'Write low-latency Embedded C peripheral drivers for MSPM0 and SimpleLink processors',
-      'Debug bus timing with logic analyzers and oscilloscopes in hardware labs',
-      'Implement FreeRTOS task scheduling for multi-sensor data acquisition'
-    ],
-    eligibility: 'B.Tech in Electronics & Communication Engineering (ECE), Electrical & Electronics (EEE), or CSE with strong microcontrollers foundation.',
-    applicantsCount: 168,
-    postedDate: '4 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['embedded-iot-engineer'],
-    targetRoles: ['Embedded Systems & IoT Engineer'],
-    eligibleBranches: ['Electronics & Communication Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'],
-    companyDetails: {
-      size: '30,000+ employees',
-      industry: 'Semiconductor & Embedded Systems',
-      website: 'https://ti.com',
-      rating: 4.6
-    }
-  },
-  // 11. Associate VLSI Design & Verification Engineer (Qualcomm) - ECE / EEE
-  {
-    id: 'opp-16',
-    type: 'job',
-    title: 'Associate VLSI Design & Verification Engineer',
-    organization: 'Qualcomm',
-    logo: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100&auto=format&fit=crop&q=80',
-    location: 'Hyderabad / Bangalore',
-    workMode: 'On-site',
-    requiredSkills: ['SystemVerilog', 'Verilog', 'Digital Electronics', 'UVM', 'FPGA'],
-    preferredSkills: ['Python', 'Perl', 'Static Timing Analysis (STA)'],
-    salaryOrStipend: '₹16,00,000 - ₹21,00,000 / annum',
-    experience: 'Fresher (Campus 2026)',
-    deadline: '30 Oct 2026',
-    matchPercentage: 82,
-    description: 'Join Qualcomm Snapdragon silicon engineering teams designing and verifying high-speed digital blocks, cellular modems, and low-power ASIC cores.',
-    responsibilities: [
-      'Develop SystemVerilog and UVM testbenches for IP block verification',
-      'Execute code coverage and functional coverage simulations',
-      'Analyze logic synthesis and timing constraint closure with EDA tools'
-    ],
-    eligibility: 'B.Tech in Electronics & Communication Engineering (ECE) or Electrical & Electronics Engineering (EEE) with minimum 7.5 CGPA.',
-    applicantsCount: 230,
-    postedDate: '1 week ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['vlsi-engineer', 'embedded-iot-engineer'],
-    targetRoles: ['VLSI & Silicon Design Engineer', 'Embedded Systems & IoT Engineer'],
-    eligibleBranches: ['Electronics & Communication Engineering', 'Electrical & Electronics Engineering'],
-    companyDetails: {
-      size: '50,000+ employees',
-      industry: 'Wireless Semiconductors & Telecommunications',
-      website: 'https://qualcomm.com',
-      rating: 4.6
-    }
-  },
-  // 12. IoT Systems & Edge Hardware Intern (Bosch R&D) - ECE / EEE / CSE
-  {
-    id: 'opp-17',
-    type: 'internship',
-    title: 'IoT Systems & Connected Mobility Intern',
-    organization: 'Bosch Global Software Technologies',
-    logo: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore / Coimbatore',
-    workMode: 'Hybrid',
-    requiredSkills: ['Embedded C', 'IoT Protocols (MQTT/CoAP)', 'Python', 'Sensors', 'Linux'],
-    preferredSkills: ['Bluetooth Low Energy (BLE)', 'AWS IoT Core', 'CAN Bus'],
-    salaryOrStipend: '₹35,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '20 Oct 2026',
-    matchPercentage: 86,
-    description: 'Engineer edge telematics gateway firmware connecting electric two-wheelers and industrial machines to cloud telemetry dashboards.',
-    responsibilities: [
-      'Implement MQTT telemetry publish-subscribe stacks on ESP32 and STM32 chips',
-      'Interface temperature, vibration, and CAN bus sensors with low power sleep cycles',
-      'Build end-to-end integration tests with AWS IoT Core message brokers'
-    ],
-    eligibility: 'B.Tech in ECE, EEE, or CSE graduating in 2026 or 2027.',
-    applicantsCount: 195,
-    postedDate: '5 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['embedded-iot-engineer', 'robotics-engineer'],
-    targetRoles: ['Embedded Systems & IoT Engineer', 'Robotics & Automation Engineer'],
-    eligibleBranches: ['Electronics & Communication Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'],
-    companyDetails: {
-      size: '35,000+ employees',
-      industry: 'Automotive & Industrial IoT',
-      website: 'https://bosch.in',
-      rating: 4.5
-    }
-  },
-  // 13. Robotics & Industrial Automation Engineer (Tata Motors Electric) - ME / EEE / ECE
-  {
-    id: 'opp-19',
-    type: 'job',
-    title: 'Robotics & Automation Engineer - EV Manufacturing',
-    organization: 'Tata Motors Electric Mobility',
-    logo: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80',
-    location: 'Pune / Sanand',
-    workMode: 'On-site',
-    requiredSkills: ['Robotics (ROS/ROS2)', 'PLC Programming', 'MATLAB/Simulink', 'Python', 'Kinematics'],
-    preferredSkills: ['Computer Vision', 'SCADA', 'Industrial Sensors'],
-    salaryOrStipend: '₹10,50,000 - ₹13,50,000 / annum',
-    experience: 'Fresher (Campus 2026)',
-    deadline: '08 Nov 2026',
-    matchPercentage: 80,
-    description: 'Program robotic arms, automated guided vehicles (AGVs), and battery assembly lines for India’s premier electric vehicle manufacturing plants.',
-    responsibilities: [
-      'Program and calibrate 6-axis KUKA/ABB robotic arms on EV battery pack assembly lines',
-      'Implement ROS2 path planning and obstacle avoidance algorithms for warehouse AGVs',
-      'Optimize cycle times and safety interlocks with Siemens PLCs'
-    ],
-    eligibility: 'B.Tech in Mechanical Engineering, Electrical & Electronics, Mechatronics, or ECE graduating in 2026 with minimum 7.0 CGPA.',
-    applicantsCount: 154,
-    postedDate: '6 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['robotics-engineer'],
-    targetRoles: ['Robotics & Automation Engineer'],
-    eligibleBranches: ['Mechanical Engineering', 'Electrical & Electronics Engineering', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '75,000+ employees',
-      industry: 'Automotive & Clean Mobility',
-      website: 'https://tatamotors.com',
-      rating: 4.5
-    }
-  },
-  // 14. Autonomous Systems & EV Battery Intern (Ola Electric) - ME / EEE / CSE
-  {
-    id: 'opp-20',
-    type: 'internship',
-    title: 'Autonomous Vehicle & Battery Telemetry Intern',
-    organization: 'Ola Electric',
-    logo: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore / FutureFactory Krishnagiri',
-    workMode: 'On-site',
-    requiredSkills: ['Python', 'MATLAB', 'Sensor Fusion', 'Battery Management Systems (BMS)', 'CAN Bus'],
-    preferredSkills: ['C++', 'Machine Learning', 'Thermal Simulation'],
-    salaryOrStipend: '₹30,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '24 Oct 2026',
-    matchPercentage: 85,
-    description: 'Work with battery algorithm research teams formulating state-of-charge (SoC) estimation and thermal runaway early warning models.',
-    responsibilities: [
-      'Analyze cell temperature and voltage telemetry from hundreds of fleet vehicles',
-      'Develop Kalman filter estimators for accurate State of Charge tracking',
-      'Perform hardware-in-the-loop (HIL) battery degradation testing'
-    ],
-    eligibility: 'B.Tech in Mechanical Engineering, Electrical & Electronics Engineering, or CSE graduating in 2026/2027.',
-    applicantsCount: 172,
-    postedDate: '5 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['robotics-engineer', 'embedded-iot-engineer'],
-    targetRoles: ['Robotics & Automation Engineer', 'Embedded Systems & IoT Engineer'],
-    eligibleBranches: ['Mechanical Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'],
-    companyDetails: {
-      size: '7,000+ employees',
-      industry: 'Electric Vehicles & Clean Tech',
-      website: 'https://olaelectric.com',
-      rating: 4.3
-    }
-  },
-  // 15. Smart City Infrastructure & GIS Consultant (L&T Technology Services) - Civil / All B.Tech
-  {
-    id: 'opp-22',
-    type: 'job',
-    title: 'Smart Infrastructure & Digital Twin Consultant',
-    organization: 'L&T Technology Services',
-    logo: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?w=100&auto=format&fit=crop&q=80',
-    location: 'Chennai / Mumbai',
-    workMode: 'Hybrid',
-    requiredSkills: ['BIM (Revit/Navisworks)', 'GIS Mapping', 'AutoCAD', 'Python Scripting', 'Project Management'],
-    preferredSkills: ['IoT Sensor Integration', 'SQL', 'Digital Twins'],
-    salaryOrStipend: '₹8,50,000 - ₹11,00,000 / annum',
-    experience: 'Fresher (Campus 2026)',
-    deadline: '15 Nov 2026',
-    matchPercentage: 78,
-    description: 'Transform conventional urban civil infrastructure into connected smart cities utilizing 3D Building Information Modeling (BIM) and spatial GIS analytics.',
-    responsibilities: [
-      'Construct federated 3D BIM models for metro rail and airport terminals',
-      'Perform clash detection and construction sequencing in Navisworks',
-      'Link smart utility sensors with GIS map dashboards for municipal authorities'
-    ],
-    eligibility: 'B.Tech in Civil Engineering, Environmental Engineering, or allied engineering disciplines with strong CAD/BIM coursework.',
-    applicantsCount: 135,
-    postedDate: '1 week ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['product-manager'],
-    targetRoles: ['Associate Product Manager - APM'],
-    eligibleBranches: ['Civil Engineering', 'Computer Science & Engineering', 'All B.Tech Branches'],
-    companyDetails: {
-      size: '22,000+ employees',
-      industry: 'Engineering R&D & Smart Infrastructure',
-      website: 'https://ltts.com',
-      rating: 4.4
-    }
-  },
-  // 16. Structural BIM & Digital Construction Intern (Afcons Infrastructure) - Civil
-  {
-    id: 'opp-23',
-    type: 'internship',
-    title: 'Structural BIM & Digital Construction Intern',
-    organization: 'Afcons Infrastructure Ltd',
-    logo: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=100&auto=format&fit=crop&q=80',
-    location: 'Mumbai / Site Projects',
-    workMode: 'On-site',
-    requiredSkills: ['AutoCAD', 'Revit Structure', 'STAAD.Pro', 'Structural Analysis', 'Surveying'],
-    preferredSkills: ['Civil 3D', 'Drone Photogrammetry', 'Excel Modeling'],
-    salaryOrStipend: '₹22,000 / month',
-    duration: '4 Months (Summer 2026)',
-    deadline: '28 Oct 2026',
-    matchPercentage: 81,
-    description: 'Immerse on landmark bridge, tunnel, and highway engineering projects utilizing cutting-edge structural modeling and digital construction tools.',
-    responsibilities: [
-      'Assist senior structural engineers in STAAD.Pro load analysis and reinforcement detailing',
-      'Generate accurate quantity take-offs (BOQ) from Revit Structural models',
-      'Participate in on-site quality assurance inspections and concrete curing verification'
-    ],
-    eligibility: 'Pre-final and final year B.Tech Civil Engineering students graduating in 2026/2027.',
-    applicantsCount: 98,
-    postedDate: '4 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['product-manager'],
-    targetRoles: ['Associate Product Manager - APM'],
-    eligibleBranches: ['Civil Engineering'],
-    companyDetails: {
-      size: '15,000+ employees',
-      industry: 'Infrastructure & Heavy Civil Construction',
-      website: 'https://afcons.com',
-      rating: 4.5
-    }
-  },
-  // 17. Associate Product Manager - APM (Cred) - All B-Tech Branches
-  {
-    id: 'opp-24',
-    type: 'job',
-    title: 'Associate Product Manager (APM Batch 2026)',
-    organization: 'CRED',
-    logo: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'On-site',
-    requiredSkills: ['Product Strategy', 'SQL', 'User Research', 'Data-Driven Decision Making', 'Wireframing'],
-    preferredSkills: ['A/B Testing', 'System Design', 'Financial Tech Knowledge'],
-    salaryOrStipend: '₹20,00,000 - ₹26,00,000 / annum',
-    experience: 'Fresher (Graduating 2026)',
-    deadline: '05 Nov 2026',
-    matchPercentage: 87,
-    description: 'CRED’s flagship APM cohort is seeking high-agency engineering graduates from any branch with sharp first-principles thinking to build premium member rewards and financial commerce features.',
-    responsibilities: [
-      'Define product requirement documents (PRDs) for new rewards and financial features',
-      'Formulate North Star user metrics and write SQL queries to track funnel drop-offs',
-      'Partner daily with engineering, UI/UX design, and compliance leads'
-    ],
-    eligibility: 'Graduating B.Tech students across ANY engineering branch (CSE, ECE, ME, Civil, EEE) with proven leadership and structured problem solving.',
-    applicantsCount: 620,
-    postedDate: '3 days ago',
-    isSaved: true,
-    appliedStatus: null,
-    careerRoleIds: ['product-manager', 'ui-ux-designer'],
-    targetRoles: ['Associate Product Manager - APM', 'UI/UX Product Designer'],
-    eligibleBranches: ['All B.Tech Branches', 'Computer Science & Engineering', 'Electronics & Communication Engineering', 'Mechanical Engineering', 'Civil Engineering'],
-    companyDetails: {
-      size: '1,500+ employees',
-      industry: 'Fintech & Consumer Internet',
-      website: 'https://cred.club',
-      rating: 4.7
-    }
-  },
-  // 18. UI/UX Product Design Intern (Zoho) - All B-Tech Branches
-  {
-    id: 'opp-25',
-    type: 'internship',
-    title: 'UI/UX Product Design Intern',
-    organization: 'Zoho Corporation',
-    logo: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=100&auto=format&fit=crop&q=80',
-    location: 'Chennai / Tenkasi / Hybrid',
-    workMode: 'Hybrid',
-    requiredSkills: ['Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems'],
-    preferredSkills: ['HTML/CSS', 'Micro-interactions', 'Usability Testing'],
-    salaryOrStipend: '₹30,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '25 Oct 2026',
-    matchPercentage: 83,
-    description: 'Design intuitive, world-class enterprise SaaS interfaces for Zoho suite of cloud software used by over 100 million global users.',
-    responsibilities: [
-      'Create high-fidelity interactive prototypes and design specifications in Figma',
-      'Conduct 1-on-1 user testing interviews to discover usability bottlenecks',
-      'Contribute reusable tokens and components to the unified Zoho Design System'
-    ],
-    eligibility: 'B.Tech students from ANY branch with a strong design portfolio demonstrating design thinking and visual craftsmanship.',
-    applicantsCount: 310,
-    postedDate: '4 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['ui-ux-designer', 'product-manager'],
-    targetRoles: ['UI/UX Product Designer', 'Associate Product Manager - APM'],
-    eligibleBranches: ['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '15,000+ employees',
-      industry: 'Enterprise Cloud SaaS',
-      website: 'https://zoho.com',
-      rating: 4.6
-    }
-  },
-  // 19. Mobile App Engineer - Flutter & React Native (PhonePe) - CSE / IT / ECE
-  {
-    id: 'opp-26',
-    type: 'job',
-    title: 'Mobile Application Engineer (iOS & Android)',
-    organization: 'PhonePe',
-    logo: 'https://images.unsplash.com/photo-1556742049-0a67e5572293?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore, India',
-    workMode: 'Hybrid',
-    requiredSkills: ['Flutter / React Native', 'Dart / TypeScript', 'Mobile UI', 'REST APIs', 'State Management'],
-    preferredSkills: ['Kotlin', 'Swift', 'App Store Deployment'],
-    salaryOrStipend: '₹15,00,000 - ₹19,50,000 / annum',
-    experience: 'Fresher to 1 Year',
-    deadline: '10 Nov 2026',
-    matchPercentage: 88,
-    description: 'Build fast, rock-solid mobile payment and wealth management journeys deployed to over 500 million registered users.',
-    responsibilities: [
-      'Develop pixel-perfect cross-platform mobile screens in Flutter/React Native',
-      'Optimize app startup time and minimize APK/IPA binary sizes',
-      'Implement offline-first caching and encrypted biometric authentication'
-    ],
-    eligibility: 'B.Tech in Computer Science & Engineering, Information Technology, or ECE graduating in 2026.',
-    applicantsCount: 290,
-    postedDate: '5 days ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['mobile-app-developer', 'frontend-engineer'],
-    targetRoles: ['Mobile App Developer - Flutter & React Native', 'Frontend Engineer - React & UI'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'],
-    companyDetails: {
-      size: '4,000+ employees',
-      industry: 'Fintech & Digital Commerce',
-      website: 'https://phonepe.com',
-      rating: 4.5
-    }
-  },
-  // 20. QA & Test Automation Engineer (Atlassian) - CSE / IT
-  {
-    id: 'opp-27',
-    type: 'internship',
-    title: 'QA Automation & Reliability Intern',
-    organization: 'Atlassian',
-    logo: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=100&auto=format&fit=crop&q=80',
-    location: 'Bangalore / Remote',
-    workMode: 'Remote',
-    requiredSkills: ['Selenium / Cypress / Playwright', 'Python / JavaScript', 'CI/CD', 'API Testing', 'Git'],
-    preferredSkills: ['Performance Testing', 'Jira API', 'Docker'],
-    salaryOrStipend: '₹55,000 / month',
-    duration: '6 Months (Summer 2026)',
-    deadline: '20 Oct 2026',
-    matchPercentage: 92,
-    description: 'Ensure bulletproof software quality across Jira and Confluence cloud services by constructing end-to-end automated testing pipelines.',
-    responsibilities: [
-      'Write reliable end-to-end browser tests in Playwright and Cypress',
-      'Construct automated API regression suites integrated into GitHub Actions CI',
-      'Conduct load stress testing to identify database query bottlenecks'
-    ],
-    eligibility: 'B.Tech in Computer Science or Information Technology graduating in 2026 or 2027.',
-    applicantsCount: 210,
-    postedDate: '1 week ago',
-    isSaved: false,
-    appliedStatus: null,
-    careerRoleIds: ['qa-automation-engineer', 'fullstack-engineer'],
-    targetRoles: ['QA & Test Automation Engineer', 'Full Stack Software Engineer'],
-    eligibleBranches: ['Computer Science & Engineering', 'Information Technology'],
-    companyDetails: {
-      size: '11,000+ employees',
-      industry: 'Developer Tools & Collaboration Software',
-      website: 'https://atlassian.com',
-      rating: 4.7
-    }
-  },
-  // 21. FDP Sponsored Fellowship
+  // 1. FDP Sponsored Fellowship
   {
     id: 'opp-6',
     type: 'fdp',
@@ -1011,6 +285,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Master enterprise cloud fundamentals with production labs, architectural case studies, and official voucher preparation.',
     mode: 'Live Online',
     isEnrolled: true,
+    videoUrl: 'https://www.youtube.com/embed/SOTamWNgDKc',
+    videoTitle: 'Module 1: Enterprise AWS Cloud Architecture, VPC & Core Infrastructure',
+    videoDuration: '65 mins',
     careerRoleIds: ['cloud-devops-engineer', 'fullstack-engineer', 'backend-engineer'],
     targetRoles: ['Cloud & DevOps Engineer', 'Full Stack Software Engineer', 'Backend Engineer'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering']
@@ -1030,6 +307,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Build real-world multimodal agents, evaluate context windows, and deploy low-latency inference pipelines on GPUs.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/kCc8FmEb1nY',
+    videoTitle: 'Lecture 1: Deep Learning & Transformers Architecture from Scratch',
+    videoDuration: '75 mins',
     careerRoleIds: ['ai-ml-engineer', 'data-scientist', 'data-engineer'],
     targetRoles: ['AI & Machine Learning Engineer', 'Data Scientist', 'Data Engineer'],
     eligibleBranches: ['Artificial Intelligence & Data Science', 'Computer Science & Engineering', 'Information Technology']
@@ -1049,6 +329,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Learn modern software engineering patterns used in fast-growing tech scaleups.',
     mode: 'Self-paced',
     isEnrolled: true,
+    videoUrl: 'https://www.youtube.com/embed/nu_pCVPKzTk',
+    videoTitle: 'Lecture 1: Modern Full-Stack Web Architecture, React 18 & Next.js',
+    videoDuration: '55 mins',
     careerRoleIds: ['fullstack-engineer', 'frontend-engineer', 'backend-engineer'],
     targetRoles: ['Full Stack Software Engineer', 'Frontend Engineer', 'Backend Engineer'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science']
@@ -1068,6 +351,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Hands-on enterprise data warehouse engineering curriculum with actual Fortune 500 anonymized datasets.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/4m9j6hlbf4g',
+    videoTitle: 'Module 1: Snowflake Cloud Data Warehousing & Modern Data Pipelines',
+    videoDuration: '45 mins',
     careerRoleIds: ['data-engineer', 'data-scientist', 'business-analyst'],
     targetRoles: ['Data Engineer', 'Data Scientist', 'Business Analyst'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science']
@@ -1087,6 +373,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Master containerization, pod orchestration, ingress controllers, zero-downtime canary updates, and automated build pipelines.',
     mode: 'Self-paced',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/fqMOX6JJhGo',
+    videoTitle: 'Lab 1: Docker Containerization, Kubernetes Pods & Microservice Orchestration',
+    videoDuration: '50 mins',
     careerRoleIds: ['cloud-devops-engineer', 'fullstack-engineer', 'backend-engineer'],
     targetRoles: ['Cloud & DevOps Engineer', 'Full Stack Software Engineer', 'Backend Engineer'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering']
@@ -1106,6 +395,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Design and verify complex digital IP blocks. Hands-on testbench creation with SystemVerilog, UVM classes, and code coverage closure.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/L1ung0wil9Y',
+    videoTitle: 'Lecture 1: Digital VLSI Circuit Design, SystemVerilog & UVM Verification',
+    videoDuration: '46 mins',
     careerRoleIds: ['vlsi-engineer', 'embedded-iot-engineer'],
     targetRoles: ['VLSI & Silicon Design Engineer', 'Embedded Systems & IoT Engineer'],
     eligibleBranches: ['Electronics & Communication Engineering', 'Electrical & Electronics Engineering']
@@ -1125,6 +417,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Program ARM Cortex-M microcontrollers, write RTOS peripheral drivers, and stream real-time sensor metrics over low-power wireless meshes.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/hnj-7XwTYRI',
+    videoTitle: 'Lab 1: Embedded Microcontroller Architecture & Sensor Interfacing',
+    videoDuration: '48 mins',
     careerRoleIds: ['embedded-iot-engineer', 'robotics-engineer'],
     targetRoles: ['Embedded Systems & IoT Engineer', 'Robotics & Automation Engineer'],
     eligibleBranches: ['Electronics & Communication Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering']
@@ -1144,6 +439,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Program industrial articulated manipulators, mobile AGVs, and ROS2 navigation stacks for modern smart factories.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/HJAE5Pk8Nyw',
+    videoTitle: 'Lab 1: Autonomous Robotics with ROS 2, Kinematics & Sensor Fusion',
+    videoDuration: '54 mins',
     careerRoleIds: ['robotics-engineer', 'embedded-iot-engineer'],
     targetRoles: ['Robotics & Automation Engineer', 'Embedded Systems & IoT Engineer'],
     eligibleBranches: ['Mechanical Engineering', 'Electrical & Electronics Engineering', 'Electronics & Communication Engineering', 'Computer Science & Engineering']
@@ -1163,6 +461,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Comprehensive powertrain dynamics, regenerative braking models, lithium-ion cell balancing, and high-voltage inverter architectures.',
     mode: 'Self-paced',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/3SAxXUIre28',
+    videoTitle: 'Module 1: Electric Vehicle Powertrain, BMS Architecture & Motor Drives',
+    videoDuration: '47 mins',
     careerRoleIds: ['ev-automotive-engineer', 'robotics-engineer'],
     targetRoles: ['EV & Automotive Systems Engineer', 'Robotics & Automation Engineer'],
     eligibleBranches: ['Electrical & Electronics Engineering', 'Mechanical Engineering', 'Electronics & Communication Engineering']
@@ -1182,6 +483,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Master 3D spatial coordination, parametric structural modeling, clash detection, and quantity surveying for major infrastructure projects.',
     mode: 'Self-paced',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/4m9j6hlbf4g',
+    videoTitle: 'Module 1: Building Information Modeling (BIM) & 3D Structural Revit',
+    videoDuration: '52 mins',
     careerRoleIds: ['civil-bim-engineer', 'structural-engineer'],
     targetRoles: ['Civil & Structural BIM Engineer', 'Infrastructure Engineer'],
     eligibleBranches: ['Civil Engineering']
@@ -1201,6 +505,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Live red team vs blue team attack simulations, Wireshark packet inspections, Splunk SIEM alert triage, and cloud perimeter defense.',
     mode: 'Live Online',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/3Kq1MIfTWCE',
+    videoTitle: 'Masterclass: Offensive Cybersecurity, SIEM Threat Hunting & SOC Defense',
+    videoDuration: '58 mins',
     careerRoleIds: ['cybersecurity-analyst', 'cloud-devops-engineer'],
     targetRoles: ['Cybersecurity & SOC Analyst', 'Cloud & DevOps Engineer'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering']
@@ -1220,6 +527,9 @@ export const mockLearningPrograms: LearningProgram[] = [
     description: 'Build native iOS and Android apps with 60fps animations, local SQLite caching, responsive layouts, and OAuth authentication.',
     mode: 'Self-paced',
     isEnrolled: false,
+    videoUrl: 'https://www.youtube.com/embed/VPvVD8t02U8',
+    videoTitle: 'Lecture 1: Cross-Platform Mobile Architecture with Flutter & Dart',
+    videoDuration: '62 mins',
     careerRoleIds: ['mobile-app-developer', 'frontend-engineer', 'fullstack-engineer'],
     targetRoles: ['Mobile Application Developer', 'Frontend Engineer', 'Full Stack Software Engineer'],
     eligibleBranches: ['Computer Science & Engineering', 'Information Technology', 'All B.Tech Branches']
@@ -1571,19 +881,6 @@ export const mockAssessmentQuestions: AssessmentQuestion[] = [
     ],
     correctOption: 1,
     explanation: 'Effective cross-functional communication leads with business value, strategic trade-offs, and risk mitigations, bridging the gap between executive goals and engineering execution.'
-  },
-  {
-    id: 7,
-    section: 'Leadership',
-    question: 'During a high-stakes Capstone sprint, two team members strongly disagree on whether to use GraphQL or REST, causing design deadlock. As team lead, what is the best resolution path?',
-    options: [
-      'Pick the tool you personally like best and order everyone to follow it without discussion.',
-      'Define clear evaluation criteria based on project constraints (deadline, client needs, team proficiency), run a quick 2-hour proof of concept, and make a transparent, documented decision.',
-      'Tell them to fight it out until one gives up.',
-      'Abandon the API layer entirely.'
-    ],
-    correctOption: 1,
-    explanation: 'Mature engineering leadership depersonalizes technical debates by grounding choices in project requirements, objective constraints, and time-boxed prototyping.'
   }
 ];
 

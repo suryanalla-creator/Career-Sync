@@ -122,6 +122,30 @@ export interface SkillGapAnalysis {
   }[];
 }
 
+export interface VerificationCheck {
+  title: string;
+  status: 'passed' | 'warning' | 'failed';
+  details: string;
+}
+
+export interface VerificationReport {
+  isReal: boolean;
+  trustScore: number;
+  verificationStatus: 'Verified' | 'Suspicious' | 'Rejected' | 'Unverified';
+  issuer: string;
+  issuerCategory?: string;
+  issuerStatus?: 'Trusted Authority' | 'Accredited Institution' | 'Unregistered / Unknown' | 'Blacklisted';
+  credentialId?: string;
+  credentialUrl?: string;
+  recipientMatched: boolean;
+  recipientFound?: string;
+  completionDate?: string;
+  checks: VerificationCheck[];
+  flags: string[];
+  summary: string;
+  verifiedAt: string;
+}
+
 export interface VerifiedCertificate {
   id: string;
   skillName: string;
@@ -130,6 +154,11 @@ export interface VerifiedCertificate {
   mimeType?: string;
   uploadedAt: string;
   issuer?: string;
+  credentialId?: string;
+  credentialUrl?: string;
+  trustScore?: number;
+  verificationStatus?: 'Verified' | 'Suspicious' | 'Rejected' | 'Unverified';
+  verificationReport?: VerificationReport;
 }
 
 export interface VerifiedSkillItem {
@@ -224,6 +253,40 @@ export interface Opportunity {
   isClosed?: boolean;
   closedReason?: string;
   closedAt?: string;
+  // Minimum Industry Benchmark Requirements
+  minSkillScore?: number; // e.g. 75
+  minCgpa?: number; // e.g. 7.5
+  minMatchPercentage?: number; // e.g. 70
+  minVerifiedCertificatesCount?: number; // e.g. 1
+  requiresVerifiedCertificates?: boolean;
+  benchmarkNotes?: string;
+}
+
+export interface BenchmarkCheckItem {
+  id: 'skillScore' | 'cgpa' | 'matchPercentage' | 'verifiedCertificates';
+  label: string;
+  required: string | number;
+  current: string | number;
+  met: boolean;
+  gapMessage?: string;
+}
+
+export interface OpportunityEligibilityResult {
+  isEligible: boolean;
+  totalCriteria: number;
+  metCriteria: number;
+  checks: BenchmarkCheckItem[];
+  unmetLabels: string[];
+  summaryMessage: string;
+}
+
+export interface CourseVideoItem {
+  id: string;
+  title: string;
+  url: string;
+  duration?: string;
+  moduleIndex?: number;
+  description?: string;
 }
 
 export interface LearningProgram {
@@ -254,6 +317,82 @@ export interface LearningProgram {
   closedAt?: string;
   hiringAdvantage?: string;
   stipendOrCost?: string;
+  mentorName?: string;
+  venueOrLink?: string;
+  syllabusModules?: { moduleNumber: number; title: string; duration: string; topics: string[] }[];
+  scheduleTiming?: string;
+  department?: string;
+  certificateTemplateTitle?: string;
+  certificateSignatoryName?: string;
+  certificateSignatoryTitle?: string;
+  certificateBadgeUrl?: string;
+  certificateCredentialPrefix?: string;
+  certificateCitation?: string;
+  certificateTemplateStyle?: 'gold' | 'blue' | 'emerald' | 'indigo';
+  autoIssueCertificate?: boolean;
+  videoUrl?: string;
+  videoTitle?: string;
+  videoDuration?: string;
+  videos?: CourseVideoItem[];
+  postedDate?: string;
+}
+
+export interface MenteeCourseEnrollment {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  courseMode: 'Self-paced' | 'Live Online' | 'Classroom' | 'Hybrid';
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  studentAvatar?: string;
+  department: string;
+  usn: string;
+  cgpa: number;
+  appliedAt: string;
+  statementOfPurpose?: string;
+  permissionStatus: 'pending' | 'approved' | 'declined';
+  permissionDecidedAt?: string;
+  mentorId?: string;
+  mentorName?: string;
+  startedAt?: string;
+  progressPercentage: number;
+  currentModule?: string;
+  completedAssignments: number;
+  totalAssignments: number;
+  assessmentScore?: number;
+  lastActiveAt?: string;
+  mentorNotes?: string;
+  isCertified?: boolean;
+  issuedCertificateId?: string;
+  certificateIssuedAt?: string;
+  testStatus?: 'not_started' | 'in_progress' | 'passed' | 'failed' | 'disqualified';
+  testScore?: number;
+  testViolationsCount?: number;
+  isDisqualified?: boolean;
+  disqualificationReason?: string;
+  testCompletedAt?: string;
+}
+
+export interface CourseTestQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  topic: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+export interface CourseTestResult {
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  passed: boolean;
+  isDisqualified: boolean;
+  violationsCount: number;
+  feedback: string;
+  certificateEligible: boolean;
+  certificate?: any;
+  credentialId?: string;
 }
 
 export interface ApplicationTrackerItem {
@@ -315,8 +454,13 @@ export interface CertificationItem {
   issueDate: string;
   expiryDate?: string;
   credentialId: string;
-  verificationStatus: 'Verified' | 'Completed' | 'Pending Verification';
+  credentialUrl?: string;
+  verificationStatus: 'Verified' | 'Completed' | 'Pending Verification' | 'Suspicious' | 'Rejected';
+  trustScore?: number;
+  verificationDetails?: VerificationReport;
   skills: string[];
+  fileName?: string;
+  fileDataUrl?: string;
 }
 
 export interface Mentor {
@@ -398,7 +542,7 @@ export type AssessmentQuestionType =
 export interface AssessmentQuestion {
   id: number | string;
   type?: AssessmentQuestionType;
-  section: 'Programming' | 'Data & AI' | 'Problem Solving' | 'Communication' | 'Leadership';
+  section: 'Programming' | 'Data & AI' | 'Problem Solving' | 'Communication';
   title?: string;
   question: string;
   codeSnippet?: string;
@@ -432,6 +576,12 @@ export interface Candidate {
   status: 'Available' | 'Shortlisted' | 'Interviewed' | 'In Interview' | 'Offered' | 'Placed' | 'Hired';
   isVerified: boolean;
   cgpa: number;
+  appliedJobTitle?: string;
+  appliedCompany?: string;
+  appliedDate?: string;
+  appliedStage?: string;
+  appliedOpportunityId?: string;
+  hasApplied?: boolean;
 }
 
 export interface PlacementDrive {

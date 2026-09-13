@@ -2,12 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDatabase } from './db';
+import { trainAndSeedQuestionBank } from './services/massiveQuestionTrainer';
 import { authRouter } from './routes/auth';
 import { opportunitiesRouter } from './routes/opportunities';
 import { applicationsRouter } from './routes/applications';
 import { studentsRouter } from './routes/students';
 import { commonRouter } from './routes/common';
 import { aiRouter } from './routes/ai';
+import { certificatesRouter } from './routes/certificates';
 
 dotenv.config();
 
@@ -16,13 +18,15 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize database schema and seed data
 initDatabase();
+trainAndSeedQuestionBank();
 
 // Middleware
 app.use(cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'],
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Request logger
 app.use((req, res, next) => {
@@ -46,6 +50,7 @@ app.use('/api/opportunities', opportunitiesRouter);
 app.use('/api/applications', applicationsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/certificates', certificatesRouter);
 app.use('/api', commonRouter);
 
 // Error handling middleware

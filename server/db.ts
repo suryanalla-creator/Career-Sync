@@ -88,7 +88,12 @@ export function initDatabase() {
       created_by TEXT,
       career_role_ids TEXT,
       target_roles TEXT,
-      eligible_branches TEXT
+      eligible_branches TEXT,
+      min_skill_score INTEGER DEFAULT 70,
+      min_cgpa REAL DEFAULT 7.0,
+      min_match_percentage INTEGER DEFAULT 60,
+      min_verified_certs INTEGER DEFAULT 0,
+      benchmark_notes TEXT
     );
 
     CREATE TABLE IF NOT EXISTS saved_opportunities (
@@ -308,6 +313,39 @@ export function initDatabase() {
       description TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS mentee_course_enrollments (
+      id TEXT PRIMARY KEY,
+      course_id TEXT NOT NULL,
+      course_title TEXT NOT NULL,
+      course_mode TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      student_name TEXT NOT NULL,
+      student_email TEXT NOT NULL,
+      student_avatar TEXT,
+      department TEXT NOT NULL,
+      usn TEXT,
+      cgpa REAL,
+      applied_at TEXT NOT NULL,
+      statement_of_purpose TEXT,
+      permission_status TEXT NOT NULL DEFAULT 'pending',
+      permission_decided_at TEXT,
+      mentor_id TEXT,
+      mentor_name TEXT,
+      started_at TEXT,
+      progress_percentage INTEGER DEFAULT 0,
+      current_module TEXT,
+      completed_assignments INTEGER DEFAULT 0,
+      total_assignments INTEGER DEFAULT 5,
+      assessment_score REAL,
+      last_active_at TEXT,
+      mentor_notes TEXT,
+      is_certified INTEGER DEFAULT 0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mentee_course_course_id ON mentee_course_enrollments(course_id);
+    CREATE INDEX IF NOT EXISTS idx_mentee_course_student_id ON mentee_course_enrollments(student_id);
+    CREATE INDEX IF NOT EXISTS idx_mentee_course_status ON mentee_course_enrollments(permission_status);
+
     -- ==========================================
     -- HIGH-PERFORMANCE INSTITUTIONAL INDEXES
     -- ==========================================
@@ -351,6 +389,11 @@ export function initDatabase() {
   try { db.exec('ALTER TABLE opportunities ADD COLUMN is_closed INTEGER DEFAULT 0;'); } catch {}
   try { db.exec('ALTER TABLE opportunities ADD COLUMN closed_reason TEXT;'); } catch {}
   try { db.exec('ALTER TABLE opportunities ADD COLUMN closed_at TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE opportunities ADD COLUMN min_skill_score INTEGER DEFAULT 70;'); } catch {}
+  try { db.exec('ALTER TABLE opportunities ADD COLUMN min_cgpa REAL DEFAULT 7.0;'); } catch {}
+  try { db.exec('ALTER TABLE opportunities ADD COLUMN min_match_percentage INTEGER DEFAULT 60;'); } catch {}
+  try { db.exec('ALTER TABLE opportunities ADD COLUMN min_verified_certs INTEGER DEFAULT 0;'); } catch {}
+  try { db.exec('ALTER TABLE opportunities ADD COLUMN benchmark_notes TEXT;'); } catch {}
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN eligible_branches TEXT;'); } catch {}
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN career_role_ids TEXT;'); } catch {}
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN target_roles TEXT;'); } catch {}
@@ -364,6 +407,227 @@ export function initDatabase() {
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN closed_at TEXT;'); } catch {}
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN hiring_advantage TEXT;'); } catch {}
   try { db.exec('ALTER TABLE learning_programs ADD COLUMN stipend_or_cost TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN mentor_name TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN venue_or_link TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN syllabus_modules TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN schedule_timing TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN department TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_template_title TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_signatory_name TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_signatory_title TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_badge_url TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_credential_prefix TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_citation TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN certificate_template_style TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN auto_issue_certificate INTEGER DEFAULT 1;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN issued_certificate_id TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN certificate_issued_at TEXT;'); } catch {}
+
+  // Mentor Video posting columns
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN video_url TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN video_title TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN video_duration TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN videos_json TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE learning_programs ADD COLUMN posted_date TEXT;'); } catch {}
+
+  // Proctoring & Test columns for mentee enrollments
+  try { db.exec("ALTER TABLE mentee_course_enrollments ADD COLUMN test_status TEXT DEFAULT 'not_started';"); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN test_score REAL;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN test_violations_count INTEGER DEFAULT 0;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN is_disqualified INTEGER DEFAULT 0;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN disqualification_reason TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN test_completed_at TEXT;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN stopped_at_seconds INTEGER DEFAULT 0;'); } catch {}
+  try { db.exec('ALTER TABLE mentee_course_enrollments ADD COLUMN completed_modules_json TEXT;'); } catch {}
+
+  // Backfill topic-specific video URLs and metadata for all courses with 100% verified working audio
+  try {
+    // Full-Stack Web Engineering
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/nu_pCVPKzTk',
+          video_title = 'Lecture 1: Modern Full-Stack Web Architecture, React 18 & RESTful APIs',
+          video_duration = '55 mins'
+      WHERE id = 'lp-inst-1';
+    `).run();
+
+    // Embedded Systems & IoT Robotics Workshop
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/hnj-7XwTYRI',
+          video_title = 'Lab 1: Embedded Microcontroller Architecture & Sensor Interfacing',
+          video_duration = '48 mins'
+      WHERE id = 'lp-inst-2';
+    `).run();
+
+    // Applied Machine Learning & MLOps in Production
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/GIsg-ZUy0MY',
+          video_title = 'Masterclass: End-to-End MLOps, PyTorch Models & Production Deployment',
+          video_duration = '52 mins'
+      WHERE id = 'lp-inst-3';
+    `).run();
+
+    // Competitive Programming & Advanced Data Structures
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/RBSGKlAvoiM',
+          video_title = 'Session 1: Advanced Dynamic Programming & Graph Theory Algorithms',
+          video_duration = '60 mins'
+      WHERE id = 'lp-inst-4';
+    `).run();
+
+    // Cloud Architecture & AWS Certified Solutions Professional
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/SOTamWNgDKc',
+          video_title = 'Module 1: Enterprise AWS Cloud Architecture, VPC & Core Infrastructure',
+          video_duration = '65 mins'
+      WHERE id = 'lp-1';
+    `).run();
+
+    // Deep Learning & LLM Systems: From Zero to Production
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/kCc8FmEb1nY',
+          video_title = 'Lecture 1: Deep Learning & Transformers Architecture from Scratch',
+          video_duration = '75 mins'
+      WHERE id = 'lp-2';
+    `).run();
+
+    // Universal keyword-based updates for all courses in learning_programs with working audio
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/kCc8FmEb1nY',
+          video_title = 'Lecture 1: Generative AI, Transformers & LLM Architecture',
+          video_duration = '75 mins'
+      WHERE title LIKE '%Generative AI%' OR title LIKE '%LLM%' OR title LIKE '%Deep Learning%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/SOTamWNgDKc',
+          video_title = 'Module 1: Enterprise AWS Cloud Architecture, VPC & Core Services',
+          video_duration = '65 mins'
+      WHERE title LIKE '%AWS%' OR title LIKE '%Cloud Solutions%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/RBSGKlAvoiM',
+          video_title = 'Session 1: Advanced Dynamic Programming & Graph Theory Algorithms',
+          video_duration = '60 mins'
+      WHERE title LIKE '%Data Structures%' OR title LIKE '%Competitive Coding%' OR title LIKE '%Competitive Programming%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/L1ung0wil9Y',
+          video_title = 'Lecture 1: Digital VLSI Circuit Design, SystemVerilog & UVM',
+          video_duration = '46 mins'
+      WHERE title LIKE '%VLSI%' OR title LIKE '%SystemVerilog%' OR title LIKE '%Silicon%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/GIsg-ZUy0MY',
+          video_title = 'Masterclass: End-to-End MLOps, PyTorch Models & Production Deployment',
+          video_duration = '52 mins'
+      WHERE title LIKE '%Machine Learning%' OR title LIKE '%MLOps%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/fqMOX6JJhGo',
+          video_title = 'Lab 1: Docker Containerization, Kubernetes Pods & Microservice Orchestration',
+          video_duration = '50 mins'
+      WHERE title LIKE '%Kubernetes%' OR title LIKE '%Docker%' OR title LIKE '%DevOps%' OR title LIKE '%Cloud Native%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/3Kq1MIfTWCE',
+          video_title = 'Masterclass: Offensive Cybersecurity, SIEM Threat Hunting & SOC Defense',
+          video_duration = '58 mins'
+      WHERE title LIKE '%Cybersecurity%' OR title LIKE '%Threat Hunting%' OR title LIKE '%SIEM%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/3SAxXUIre28',
+          video_title = 'Module 1: Electric Vehicle Powertrain, BMS Architecture & Motor Drives',
+          video_duration = '47 mins'
+      WHERE title LIKE '%Electric Vehicle%' OR title LIKE '%Battery Tech%' OR title LIKE '%Powertrain%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/4m9j6hlbf4g',
+          video_title = 'Module 1: Building Information Modeling (BIM) & Structural Systems',
+          video_duration = '52 mins'
+      WHERE title LIKE '%Building Information Modeling%' OR title LIKE '%BIM%' OR title LIKE '%Revit%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/502ILHjX9EE',
+          video_title = 'Lecture 1: Agile Product Management, User Journeys & OKR Frameworks',
+          video_duration = '45 mins'
+      WHERE title LIKE '%Product Management%' OR title LIKE '%Sprint Planning%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/HAnw168huqA',
+          video_title = 'Masterclass: Executive Communication, Technical Storytelling & Leadership',
+          video_duration = '42 mins'
+      WHERE title LIKE '%Executive Communication%' OR title LIKE '%Soft Skills%' OR title LIKE '%Interview Mastery%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/nu_pCVPKzTk',
+          video_title = 'Lecture 1: Modern Full-Stack Web Architecture, React 18 & RESTful APIs',
+          video_duration = '55 mins'
+      WHERE title LIKE '%Full Stack%' OR title LIKE '%React%' OR title LIKE '%Web Development%' OR title LIKE '%fullstack%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/hnj-7XwTYRI',
+          video_title = 'Lab 1: Embedded Microcontroller Architecture & Sensor Interfacing',
+          video_duration = '48 mins'
+      WHERE title LIKE '%Embedded%' OR title LIKE '%IoT%' OR title LIKE '%Robotics%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/fqMOX6JJhGo',
+          video_title = 'Module 1: Distributed Systems Architecture, Microservices & Container Orchestration',
+          video_duration = '55 mins'
+      WHERE title LIKE '%Distributed Systems%' OR title LIKE '%Microservices%';
+    `).run();
+
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/SOTamWNgDKc',
+          video_title = 'Module 1: Advanced Cloud Solutions Architecture & Infrastructure',
+          video_duration = '60 mins'
+      WHERE title LIKE '%Cloud Engineering%';
+    `).run();
+
+    // Catch-all for any newly created or untyped courses
+    db.prepare(`
+      UPDATE learning_programs
+      SET video_url = 'https://www.youtube.com/embed/nu_pCVPKzTk',
+          video_title = 'Lecture 1: Technical Systems Architecture & Foundations',
+          video_duration = '50 mins'
+      WHERE video_url IS NULL OR video_url = '';
+    `).run();
+  } catch (err) {
+    console.error('Failed to backfill video URLs:', err);
+  }
 
   seedDataIfEmpty();
   seedExtraTablesIfEmpty();
@@ -432,7 +696,8 @@ export function getDatabaseStats() {
     'certifications',
     'internships',
     'placement_drives',
-    'collaboration_initiatives'
+    'collaboration_initiatives',
+    'mentee_course_enrollments'
   ];
 
   const tableStats = tables.map(name => {
@@ -566,623 +831,96 @@ function seedDataIfEmpty(force = false) {
   `);
 
   insertOpp.run(
-    'opp-1',
-    'internship',
-    'AI/ML Engineering Intern',
-    'TechNova Solutions',
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-    'Hyderabad, India',
+    'opp-6',
+    'fdp',
+    'Industry Immersion: Cloud-Native Microservices & AI Engineering',
+    'Infosys Springboard & Apex Tech',
+    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80',
+    'Mysore Campus / Virtual',
     'Hybrid',
-    JSON.stringify(['Python', 'PyTorch', 'SQL', 'FastAPI', 'Machine Learning']),
-    JSON.stringify(['Docker', 'Vector Embeddings', 'Git']),
-    '₹25,000 / month',
+    JSON.stringify(['Distributed Computing', 'Cloud Architecture', 'Curriculum Design', 'Docker']),
     null,
-    '6 Months (Summer 2026)',
-    '25 Sep 2026',
-    94,
-    'TechNova Solutions is looking for ambitious AI/ML interns to assist our enterprise AI innovation team in developing generative assistants and predictive models.',
-    JSON.stringify([
-      'Build and fine-tune NLP models for unstructured document classification',
-      'Optimize data pipelines fetching data from PostgreSQL and Snowflake',
-      'Implement FastAPI microservices wrapped in Docker containers'
-    ]),
-    'B.Tech in Computer Science & Engineering, AI & Data Science, or Information Technology graduating in 2026/2027 with minimum 7.5 CGPA.',
-    142,
-    '2 days ago',
-    JSON.stringify({ size: '1,200+ employees', industry: 'Enterprise Software & AI', website: 'https://technovasolutions.io', rating: 4.6 }),
-    'usr-industry-1',
-    JSON.stringify(['ai-ml-engineer', 'data-scientist', 'nlp-engineer']),
-    JSON.stringify(['AI & Machine Learning Engineer', 'Data Scientist', 'GenAI & NLP Specialist']),
-    JSON.stringify(['Computer Science & Engineering', 'Artificial Intelligence & Data Science', 'Information Technology'])
-  );
-
-  insertOpp.run(
-    'opp-2',
-    'job',
-    'Software Development Engineer - I (Frontend/Full Stack)',
-    'TechNova Solutions',
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'Hybrid',
-    JSON.stringify(['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Tailwind CSS']),
-    JSON.stringify(['Next.js', 'GraphQL', 'AWS']),
-    '₹14,50,000 - ₹18,00,000 / annum',
-    'Fresher to 1 Year',
+    'Sponsored Industry Fellowship + Certificate',
     null,
-    '15 Oct 2026',
-    92,
-    'Join our flagship SaaS platform team architecting low-latency dashboard interfaces and high-throughput collaboration workflows.',
+    '2 Weeks (Full-time intensive)',
+    '28 Sep 2026',
+    96,
+    'A national professional development initiative on modern cloud deployment, observability, and gen-AI microservices.',
     JSON.stringify([
-      'Build responsive, highly accessible React interfaces with TypeScript and Tailwind CSS',
-      'Design clean REST and GraphQL backend services in Node.js',
-      'Write comprehensive unit and integration tests with Jest and Playwright'
+      'Attend daily live architecture labs conducted by Infosys Chief System Architects',
+      'Refactor curriculum modules to reflect 2026 industry standards',
+      'Develop an industry-sponsored Capstone project template for final year students'
     ]),
-    'B.Tech in Computer Science & Engineering, Information Technology, or AI & Data Science with strong algorithmic foundation.',
-    310,
+    'Open to engineering graduates, researchers, and technical leads across India.',
+    68,
     '3 days ago',
-    JSON.stringify({ size: '1,200+ employees', industry: 'Enterprise Software & AI', website: 'https://technovasolutions.io', rating: 4.6 }),
-    'usr-industry-1',
-    JSON.stringify(['fullstack-engineer', 'frontend-engineer', 'backend-engineer']),
-    JSON.stringify(['Full Stack Software Engineer', 'Frontend Engineer', 'Backend Systems Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science'])
+    JSON.stringify({ size: '300,000+ employees', industry: 'IT & Digital Transformation', website: 'https://infosys.com', rating: 4.4 }),
+    null,
+    JSON.stringify(['cloud-devops-engineer']),
+    JSON.stringify(['Cloud & DevOps Engineer']),
+    JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering'])
   );
 
   insertOpp.run(
-    'opp-3',
-    'internship',
-    'Cloud DevOps & Platform Intern',
-    'Microsoft',
-    'https://images.unsplash.com/photo-1642132652859-3ef5a1048fd1?w=100&auto=format&fit=crop&q=80',
-    'Hyderabad / Bangalore',
+    'opp-7',
+    'consultancy',
+    'Industrial IoT Telemetry Optimization & Predictive Maintenance',
+    'Tata Motors R&D',
+    'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80',
+    'Pune / Remote',
     'Hybrid',
-    JSON.stringify(['Linux', 'Python', 'Azure / AWS', 'Docker', 'Networking']),
-    JSON.stringify(['Terraform', 'Kubernetes', 'GitHub Actions']),
-    '₹50,000 / month',
+    JSON.stringify(['Edge Computing', 'Sensor Fusion', 'Time-Series Machine Learning', 'MATLAB/Python']),
     null,
-    '3 Months (May - July 2026)',
-    '30 Sep 2026',
-    88,
-    'Gain hands-on immersion with Azure Cloud Infrastructure engineering teams building planetary-scale developer platforms.',
-    JSON.stringify([
-      'Automate cloud infrastructure testing pipelines using Python and Bash scripts',
-      'Construct CI/CD deployment workflows with GitHub Actions',
-      'Monitor container clusters with Prometheus and Grafana dashboards'
-    ]),
-    'B.Tech in CSE, IT, or ECE graduating in 2026/2027 with minimum 8.0 CGPA and solid understanding of OS and Networking.',
-    520,
-    '4 days ago',
-    JSON.stringify({ size: '220,000+ employees', industry: 'Cloud & Enterprise Computing', website: 'https://microsoft.com', rating: 4.8 }),
+    '₹6,50,000 Consultancy Grant',
     null,
-    JSON.stringify(['cloud-devops-engineer', 'site-reliability-engineer']),
-    JSON.stringify(['Cloud & DevOps Engineer', 'Site Reliability Engineer (SRE)']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-4',
-    'job',
-    'Associate Data & Analytics Consultant',
-    'Deloitte',
-    'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=100&auto=format&fit=crop&q=80',
-    'Mumbai / Gurgaon',
-    'On-site',
-    JSON.stringify(['SQL', 'Power BI', 'Python', 'Data Modeling', 'Business Communication']),
-    JSON.stringify(['Snowflake', 'Alteryx', 'Tableau']),
-    '₹11,00,000 - ₹13,50,000 / annum',
-    'Campus Hire (2026 Batch)',
-    null,
+    '4 Months Project',
     '20 Oct 2026',
-    85,
-    'Partner with Fortune 500 leadership to transform fragmented corporate telemetry into interactive executive BI cockpits.',
-    JSON.stringify([
-      'Design dimensional schemas and SQL transformation pipelines',
-      'Build executive dashboards in Power BI with drill-through telemetry',
-      'Present analytical findings to senior client leadership teams'
-    ]),
-    'B.Tech across CSE, IT, AI & DS, ECE or any engineering branch with strong analytical skills and minimum 7.0 CGPA.',
-    412,
-    '1 week ago',
-    JSON.stringify({ size: '400,000+ employees', industry: 'Management Consulting & Analytics', website: 'https://deloitte.com', rating: 4.4 }),
-    null,
-    JSON.stringify(['data-scientist', 'data-engineer']),
-    JSON.stringify(['Data Scientist', 'Big Data Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science', 'Electronics & Communication Engineering', 'All B.Tech Branches'])
-  );
-
-  insertOpp.run(
-    'opp-5',
-    'job',
-    'Cybersecurity Threat Analyst',
-    'Cisco Systems',
-    'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'Hybrid',
-    JSON.stringify(['Network Security', 'Linux', 'Python', 'Wireshark', 'SIEM Tools']),
-    JSON.stringify(['Penetration Testing', 'Cryptography', 'CompTIA Security+']),
-    '₹13,00,000 - ₹16,50,000 / annum',
-    'Fresher to 1 Year',
-    null,
-    '05 Nov 2026',
-    74,
-    'Defend critical enterprise networks from zero-day exploits, analyze malware telemetry, and configure threat response automations.',
-    JSON.stringify([
-      'Monitor Security Information and Event Management (SIEM) alerts for anomalies',
-      'Perform packet level inspection and forensic incident analysis',
-      'Script defensive response automations in Python to patch vulnerabilities'
-    ]),
-    'B.Tech in Computer Science, Information Technology, or Electronics & Communication Engineering graduating in 2026.',
-    220,
-    '1 week ago',
-    JSON.stringify({ size: '80,000+ employees', industry: 'Networking & Cybersecurity', website: 'https://cisco.com', rating: 4.7 }),
-    null,
-    JSON.stringify(['cybersecurity-analyst']),
-    JSON.stringify(['Cybersecurity Analyst & Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-9',
-    'job',
-    'Full Stack Engineer - Payment Experience',
-    'Razorpay',
-    'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=100&auto=format&fit=crop&q=80',
-    'Bangalore / Hybrid',
-    'Hybrid',
-    JSON.stringify(['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Redis']),
-    JSON.stringify(['Next.js', 'Kafka', 'Docker']),
-    '₹18,00,000 - ₹22,00,000 / annum',
-    'Fresher (2026 Batch)',
-    null,
-    '28 Oct 2026',
     91,
-    'Scale payment checkout gateways handling over 10,000 transactions per second. Build resilient UI widgets and secure financial microservices.',
+    'Seeking researchers and technical experts to formulate mathematical filtering and edge inferencing models for EV battery degradation telemetry.',
     JSON.stringify([
-      'Architect fast, low-friction checkout React components loaded by millions of consumers',
-      'Develop idempotent payment processing services with Node.js and PostgreSQL',
-      'Set up caching layers and circuit breakers with Redis'
+      'Develop real-time noise reduction filters for CAN bus sensor data streams',
+      'Validate remaining useful life (RUL) prediction algorithms against physical test rigs',
+      'Deliver final technical report and co-author joint intellectual property patent'
     ]),
-    'B.Tech in CSE or IT with high proficiency in JavaScript/TypeScript and database systems.',
-    284,
-    '4 days ago',
-    JSON.stringify({ size: '3,000+ employees', industry: 'Fintech & Payments', website: 'https://razorpay.com', rating: 4.5 }),
-    null,
-    JSON.stringify(['fullstack-engineer', 'backend-engineer', 'frontend-engineer']),
-    JSON.stringify(['Full Stack Software Engineer', 'Backend Systems Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology'])
-  );
-
-  insertOpp.run(
-    'opp-10',
-    'internship',
-    'Frontend Engineering Intern (Consumer Web)',
-    'Swiggy',
-    'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'Hybrid',
-    JSON.stringify(['React', 'TypeScript', 'Tailwind CSS', 'Redux', 'Web Performance']),
-    JSON.stringify(['Next.js', 'Jest', 'Figma to Code']),
-    '₹40,000 / month',
-    null,
-    '6 Months (Jan - June 2026)',
-    '12 Oct 2026',
-    95,
-    'Work alongside leading consumer engineers optimizing real-time order tracking, sub-second web render times, and responsive mobile-web experiences.',
-    JSON.stringify([
-      'Build performant React components with sub-second First Contentful Paint',
-      'Manage global state with Redux Toolkit and optimize re-renders',
-      'Implement accessible design system components adhering to WCAG 2.1'
-    ]),
-    'B.Tech in Computer Science & Engineering, Information Technology, or AI & Data Science graduating in 2026 or 2027.',
-    380,
-    '3 days ago',
-    JSON.stringify({ size: '6,000+ employees', industry: 'Hyperlocal Delivery & Consumer Tech', website: 'https://swiggy.com', rating: 4.4 }),
-    null,
-    JSON.stringify(['frontend-engineer', 'fullstack-engineer', 'ui-ux-designer']),
-    JSON.stringify(['Frontend Engineer - React & UI', 'Full Stack Software Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science'])
-  );
-
-  insertOpp.run(
-    'opp-11',
-    'job',
-    'Associate Data Scientist',
-    'Fractal Analytics',
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&auto=format&fit=crop&q=80',
-    'Mumbai / Bangalore',
-    'Hybrid',
-    JSON.stringify(['Python', 'SQL', 'Scikit-Learn', 'Statistics', 'Data Visualization']),
-    JSON.stringify(['PyTorch', 'MLflow', 'Tableau']),
-    '₹12,00,000 - ₹15,00,000 / annum',
-    'Campus Hire (2026 Batch)',
-    null,
-    '22 Oct 2026',
-    90,
-    'Build predictive machine learning models and experimentation pipelines for Fortune 500 healthcare and retail clients.',
-    JSON.stringify([
-      'Perform exploratory data analysis and feature engineering on petabyte datasets',
-      'Train, validate, and benchmark supervised and unsupervised ML algorithms',
-      'Collaborate with engineering teams to deploy models via REST APIs'
-    ]),
-    'B.Tech in CSE, AI & DS, IT, or ECE with strong statistical foundation and coding skills.',
-    215,
+    'Researchers and postgraduates in Electrical, CSE, or Mechanical Engineering with demonstrated signal processing and ML publications.',
+    14,
     '5 days ago',
-    JSON.stringify({ size: '4,500+ employees', industry: 'AI & Enterprise Analytics', website: 'https://fractal.ai', rating: 4.5 }),
-    null,
-    JSON.stringify(['data-scientist', 'ai-ml-engineer']),
-    JSON.stringify(['Data Scientist', 'AI & Machine Learning Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Artificial Intelligence & Data Science', 'Information Technology', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-12',
-    'internship',
-    'Generative AI & LLM Research Intern',
-    'Google Research India',
-    'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'On-site',
-    JSON.stringify(['Python', 'PyTorch', 'Transformers', 'LLMs', 'Algorithms']),
-    JSON.stringify(['JAX', 'CUDA', 'Research Papers']),
-    '₹75,000 / month',
-    null,
-    '6 Months',
-    '01 Nov 2026',
-    86,
-    'Investigate reasoning capabilities, multilingual alignment, and retrieval-augmented generation in next-generation transformer models.',
-    JSON.stringify([
-      'Conduct rigorous benchmarks on domain-specific LLM reasoning datasets',
-      'Implement prompt distillation and parameter-efficient fine-tuning (PEFT)',
-      'Publish research findings in top-tier conferences (NeurIPS/ACL/EMNLP)'
-    ]),
-    'B.Tech/Dual Degree students in CSE or AI & Data Science with proven deep learning projects and high academic standing (>8.5 CGPA).',
-    460,
-    '1 week ago',
-    JSON.stringify({ size: '180,000+ employees', industry: 'AI & Technology Research', website: 'https://research.google', rating: 4.9 }),
-    null,
-    JSON.stringify(['nlp-engineer', 'ai-ml-engineer', 'data-scientist']),
-    JSON.stringify(['GenAI & NLP Specialist', 'AI & Machine Learning Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Artificial Intelligence & Data Science'])
-  );
-
-  insertOpp.run(
-    'opp-15',
-    'internship',
-    'Embedded Firmware & Microcontroller Intern',
-    'Texas Instruments',
-    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'On-site',
-    JSON.stringify(['Embedded C', 'ARM Cortex-M', 'I2C/SPI/UART', 'RTOS', 'Oscilloscopes']),
-    JSON.stringify(['C++', 'Python Scripting', 'PCB Debugging']),
-    '₹45,000 / month',
-    null,
-    '6 Months (Summer 2026)',
-    '18 Oct 2026',
-    84,
-    'Work with Texas Instruments microcontroller division developing low-power device drivers, hardware abstraction layers, and sensor interfaces for industrial automation.',
-    JSON.stringify([
-      'Write low-latency Embedded C peripheral drivers for MSPM0 and SimpleLink processors',
-      'Debug bus timing with logic analyzers and oscilloscopes in hardware labs',
-      'Implement FreeRTOS task scheduling for multi-sensor data acquisition'
-    ]),
-    'B.Tech in Electronics & Communication Engineering (ECE), Electrical & Electronics (EEE), or CSE with strong microcontrollers foundation.',
-    168,
-    '4 days ago',
-    JSON.stringify({ size: '30,000+ employees', industry: 'Semiconductor & Embedded Systems', website: 'https://ti.com', rating: 4.6 }),
-    null,
-    JSON.stringify(['embedded-iot-engineer']),
-    JSON.stringify(['Embedded Systems & IoT Engineer']),
-    JSON.stringify(['Electronics & Communication Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-16',
-    'job',
-    'Associate VLSI Design & Verification Engineer',
-    'Qualcomm',
-    'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=100&auto=format&fit=crop&q=80',
-    'Hyderabad / Bangalore',
-    'On-site',
-    JSON.stringify(['SystemVerilog', 'Verilog', 'Digital Electronics', 'UVM', 'FPGA']),
-    JSON.stringify(['Python', 'Perl', 'Static Timing Analysis (STA)']),
-    '₹16,00,000 - ₹21,00,000 / annum',
-    'Fresher (Campus 2026)',
-    null,
-    '30 Oct 2026',
-    82,
-    'Join Qualcomm Snapdragon silicon engineering teams designing and verifying high-speed digital blocks, cellular modems, and low-power ASIC cores.',
-    JSON.stringify([
-      'Develop SystemVerilog and UVM testbenches for IP block verification',
-      'Execute code coverage and functional coverage simulations',
-      'Analyze logic synthesis and timing constraint closure with EDA tools'
-    ]),
-    'B.Tech in Electronics & Communication Engineering (ECE) or Electrical & Electronics Engineering (EEE) with minimum 7.5 CGPA.',
-    230,
-    '1 week ago',
-    JSON.stringify({ size: '50,000+ employees', industry: 'Wireless Semiconductors & Telecommunications', website: 'https://qualcomm.com', rating: 4.6 }),
-    null,
-    JSON.stringify(['vlsi-engineer', 'embedded-iot-engineer']),
-    JSON.stringify(['VLSI & Silicon Design Engineer', 'Embedded Systems & IoT Engineer']),
-    JSON.stringify(['Electronics & Communication Engineering', 'Electrical & Electronics Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-17',
-    'internship',
-    'IoT Systems & Connected Mobility Intern',
-    'Bosch Global Software Technologies',
-    'https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=100&auto=format&fit=crop&q=80',
-    'Bangalore / Coimbatore',
-    'Hybrid',
-    JSON.stringify(['Embedded C', 'IoT Protocols (MQTT/CoAP)', 'Python', 'Sensors', 'Linux']),
-    JSON.stringify(['Bluetooth Low Energy (BLE)', 'AWS IoT Core', 'CAN Bus']),
-    '₹35,000 / month',
-    null,
-    '6 Months (Summer 2026)',
-    '20 Oct 2026',
-    86,
-    'Engineer edge telematics gateway firmware connecting electric two-wheelers and industrial machines to cloud telemetry dashboards.',
-    JSON.stringify([
-      'Implement MQTT telemetry publish-subscribe stacks on ESP32 and STM32 chips',
-      'Interface temperature, vibration, and CAN bus sensors with low power sleep cycles',
-      'Build end-to-end integration tests with AWS IoT Core message brokers'
-    ]),
-    'B.Tech in ECE, EEE, or CSE graduating in 2026 or 2027.',
-    195,
-    '5 days ago',
-    JSON.stringify({ size: '35,000+ employees', industry: 'Automotive & Industrial IoT', website: 'https://bosch.in', rating: 4.5 }),
+    JSON.stringify({ size: '75,000+ employees', industry: 'Automotive & Clean Mobility', website: 'https://tatamotors.com', rating: 4.5 }),
     null,
     JSON.stringify(['embedded-iot-engineer', 'robotics-engineer']),
     JSON.stringify(['Embedded Systems & IoT Engineer', 'Robotics & Automation Engineer']),
-    JSON.stringify(['Electronics & Communication Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'])
+    JSON.stringify(['Electrical & Electronics Engineering', 'Mechanical Engineering', 'Computer Science & Engineering'])
   );
 
   insertOpp.run(
-    'opp-19',
-    'job',
-    'Robotics & Automation Engineer - EV Manufacturing',
-    'Tata Motors Electric Mobility',
-    'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=100&auto=format&fit=crop&q=80',
-    'Pune / Sanand',
-    'On-site',
-    JSON.stringify(['Robotics (ROS/ROS2)', 'PLC Programming', 'MATLAB/Simulink', 'Python', 'Kinematics']),
-    JSON.stringify(['Computer Vision', 'SCADA', 'Industrial Sensors']),
-    '₹10,50,000 - ₹13,50,000 / annum',
-    'Fresher (Campus 2026)',
-    null,
-    '08 Nov 2026',
-    80,
-    'Program robotic arms, automated guided vehicles (AGVs), and battery assembly lines for India’s premier electric vehicle manufacturing plants.',
-    JSON.stringify([
-      'Program and calibrate 6-axis KUKA/ABB robotic arms on EV battery pack assembly lines',
-      'Implement ROS2 path planning and obstacle avoidance algorithms for warehouse AGVs',
-      'Optimize cycle times and safety interlocks with Siemens PLCs'
-    ]),
-    'B.Tech in Mechanical Engineering, Electrical & Electronics, Mechatronics, or ECE graduating in 2026 with minimum 7.0 CGPA.',
-    154,
-    '6 days ago',
-    JSON.stringify({ size: '75,000+ employees', industry: 'Automotive & Clean Mobility', website: 'https://tatamotors.com', rating: 4.5 }),
-    null,
-    JSON.stringify(['robotics-engineer']),
-    JSON.stringify(['Robotics & Automation Engineer']),
-    JSON.stringify(['Mechanical Engineering', 'Electrical & Electronics Engineering', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-20',
-    'internship',
-    'Autonomous Vehicle & Battery Telemetry Intern',
-    'Ola Electric',
-    'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=100&auto=format&fit=crop&q=80',
-    'Bangalore / FutureFactory Krishnagiri',
-    'On-site',
-    JSON.stringify(['Python', 'MATLAB', 'Sensor Fusion', 'Battery Management Systems (BMS)', 'CAN Bus']),
-    JSON.stringify(['C++', 'Machine Learning', 'Thermal Simulation']),
-    '₹30,000 / month',
-    null,
-    '6 Months (Summer 2026)',
-    '24 Oct 2026',
-    85,
-    'Work with battery algorithm research teams formulating state-of-charge (SoC) estimation and thermal runaway early warning models.',
-    JSON.stringify([
-      'Analyze cell temperature and voltage telemetry from hundreds of fleet vehicles',
-      'Develop Kalman filter estimators for accurate State of Charge tracking',
-      'Perform hardware-in-the-loop (HIL) battery degradation testing'
-    ]),
-    'B.Tech in Mechanical Engineering, Electrical & Electronics Engineering, or CSE graduating in 2026/2027.',
-    172,
-    '5 days ago',
-    JSON.stringify({ size: '7,000+ employees', industry: 'Electric Vehicles & Clean Tech', website: 'https://olaelectric.com', rating: 4.3 }),
-    null,
-    JSON.stringify(['robotics-engineer', 'embedded-iot-engineer']),
-    JSON.stringify(['Robotics & Automation Engineer', 'Embedded Systems & IoT Engineer']),
-    JSON.stringify(['Mechanical Engineering', 'Electrical & Electronics Engineering', 'Computer Science & Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-22',
-    'job',
-    'Smart Infrastructure & Digital Twin Consultant',
-    'L&T Technology Services',
-    'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?w=100&auto=format&fit=crop&q=80',
-    'Chennai / Mumbai',
-    'Hybrid',
-    JSON.stringify(['BIM (Revit/Navisworks)', 'GIS Mapping', 'AutoCAD', 'Python Scripting', 'Project Management']),
-    JSON.stringify(['IoT Sensor Integration', 'SQL', 'Digital Twins']),
-    '₹8,50,000 - ₹11,00,000 / annum',
-    'Fresher (Campus 2026)',
-    null,
-    '15 Nov 2026',
-    78,
-    'Transform conventional urban civil infrastructure into connected smart cities utilizing 3D Building Information Modeling (BIM) and spatial GIS analytics.',
-    JSON.stringify([
-      'Construct federated 3D BIM models for metro rail and airport terminals',
-      'Perform clash detection and construction sequencing in Navisworks',
-      'Link smart utility sensors with GIS map dashboards for municipal authorities'
-    ]),
-    'B.Tech in Civil Engineering, Environmental Engineering, or allied engineering disciplines with strong CAD/BIM coursework.',
-    135,
-    '1 week ago',
-    JSON.stringify({ size: '22,000+ employees', industry: 'Engineering R&D & Smart Infrastructure', website: 'https://ltts.com', rating: 4.4 }),
-    null,
-    JSON.stringify(['product-manager']),
-    JSON.stringify(['Associate Product Manager - APM']),
-    JSON.stringify(['Civil Engineering', 'Computer Science & Engineering', 'All B.Tech Branches'])
-  );
-
-  insertOpp.run(
-    'opp-23',
-    'internship',
-    'Structural BIM & Digital Construction Intern',
-    'Afcons Infrastructure Ltd',
-    'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=100&auto=format&fit=crop&q=80',
-    'Mumbai / Site Projects',
-    'On-site',
-    JSON.stringify(['AutoCAD', 'Revit Structure', 'STAAD.Pro', 'Structural Analysis', 'Surveying']),
-    JSON.stringify(['Civil 3D', 'Drone Photogrammetry', 'Excel Modeling']),
-    '₹22,00,0 / month',
-    null,
-    '4 Months (Summer 2026)',
-    '28 Oct 2026',
-    81,
-    'Immerse on landmark bridge, tunnel, and highway engineering projects utilizing cutting-edge structural modeling and digital construction tools.',
-    JSON.stringify([
-      'Assist senior structural engineers in STAAD.Pro load analysis and reinforcement detailing',
-      'Generate accurate quantity take-offs (BOQ) from Revit Structural models',
-      'Participate in on-site quality assurance inspections and concrete curing verification'
-    ]),
-    'Pre-final and final year B.Tech Civil Engineering students graduating in 2026/2027.',
-    98,
-    '4 days ago',
-    JSON.stringify({ size: '15,000+ employees', industry: 'Infrastructure & Heavy Civil Construction', website: 'https://afcons.com', rating: 4.5 }),
-    null,
-    JSON.stringify(['product-manager']),
-    JSON.stringify(['Associate Product Manager - APM']),
-    JSON.stringify(['Civil Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-24',
-    'job',
-    'Associate Product Manager (APM Batch 2026)',
-    'CRED',
-    'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'On-site',
-    JSON.stringify(['Product Strategy', 'SQL', 'User Research', 'Data-Driven Decision Making', 'Wireframing']),
-    JSON.stringify(['A/B Testing', 'System Design', 'Financial Tech Knowledge']),
-    '₹20,00,000 - ₹26,00,000 / annum',
-    'Fresher (Graduating 2026)',
-    null,
-    '05 Nov 2026',
-    87,
-    'CRED’s flagship APM cohort is seeking high-agency engineering graduates from any branch with sharp first-principles thinking to build premium member rewards and financial commerce features.',
-    JSON.stringify([
-      'Define product requirement documents (PRDs) for new rewards and financial features',
-      'Formulate North Star user metrics and write SQL queries to track funnel drop-offs',
-      'Partner daily with engineering, UI/UX design, and compliance leads'
-    ]),
-    'Graduating B.Tech students across ANY engineering branch (CSE, ECE, ME, Civil, EEE) with proven leadership and structured problem solving.',
-    620,
-    '3 days ago',
-    JSON.stringify({ size: '1,500+ employees', industry: 'Fintech & Consumer Internet', website: 'https://cred.club', rating: 4.7 }),
-    null,
-    JSON.stringify(['product-manager', 'ui-ux-designer']),
-    JSON.stringify(['Associate Product Manager - APM', 'UI/UX Product Designer']),
-    JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering', 'Electronics & Communication Engineering', 'Mechanical Engineering', 'Civil Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-25',
-    'internship',
-    'UI/UX Product Design Intern',
-    'Zoho Corporation',
-    'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=100&auto=format&fit=crop&q=80',
-    'Chennai / Tenkasi / Hybrid',
-    'Hybrid',
-    JSON.stringify(['Figma', 'User Research', 'Wireframing', 'Prototyping', 'Design Systems']),
-    JSON.stringify(['HTML/CSS', 'Micro-interactions', 'Usability Testing']),
-    '₹30,000 / month',
-    null,
-    '6 Months (Summer 2026)',
-    '25 Oct 2026',
-    83,
-    'Design intuitive, world-class enterprise SaaS interfaces for Zoho suite of cloud software used by over 100 million global users.',
-    JSON.stringify([
-      'Create high-fidelity interactive prototypes and design specifications in Figma',
-      'Conduct 1-on-1 user testing interviews to discover usability bottlenecks',
-      'Contribute reusable tokens and components to the unified Zoho Design System'
-    ]),
-    'B.Tech students from ANY branch with a strong design portfolio demonstrating design thinking and visual craftsmanship.',
-    310,
-    '4 days ago',
-    JSON.stringify({ size: '15,000+ employees', industry: 'Enterprise Cloud SaaS', website: 'https://zoho.com', rating: 4.6 }),
-    null,
-    JSON.stringify(['ui-ux-designer', 'product-manager']),
-    JSON.stringify(['UI/UX Product Designer', 'Associate Product Manager - APM']),
-    JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-26',
-    'job',
-    'Mobile Application Engineer (iOS & Android)',
-    'PhonePe',
-    'https://images.unsplash.com/photo-1556742049-0a67e5572293?w=100&auto=format&fit=crop&q=80',
-    'Bangalore, India',
-    'Hybrid',
-    JSON.stringify(['Flutter / React Native', 'Dart / TypeScript', 'Mobile UI', 'REST APIs', 'State Management']),
-    JSON.stringify(['Kotlin', 'Swift', 'App Store Deployment']),
-    '₹15,00,000 - ₹19,50,000 / annum',
-    'Fresher to 1 Year',
-    null,
-    '10 Nov 2026',
-    88,
-    'Build fast, rock-solid mobile payment and wealth management journeys deployed to over 500 million registered users.',
-    JSON.stringify([
-      'Develop pixel-perfect cross-platform mobile screens in Flutter/React Native',
-      'Optimize app startup time and minimize APK/IPA binary sizes',
-      'Implement offline-first caching and encrypted biometric authentication'
-    ]),
-    'B.Tech in Computer Science & Engineering, Information Technology, or ECE graduating in 2026.',
-    290,
-    '5 days ago',
-    JSON.stringify({ size: '4,000+ employees', industry: 'Fintech & Digital Commerce', website: 'https://phonepe.com', rating: 4.5 }),
-    null,
-    JSON.stringify(['mobile-app-developer', 'frontend-engineer']),
-    JSON.stringify(['Mobile App Developer - Flutter & React Native', 'Frontend Engineer - React & UI']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering'])
-  );
-
-  insertOpp.run(
-    'opp-27',
-    'internship',
-    'QA Automation & Reliability Intern',
-    'Atlassian',
-    'https://images.unsplash.com/photo-1551434678-e076c223a692?w=100&auto=format&fit=crop&q=80',
+    'opp-8',
+    'research',
+    'Joint Research: Responsible AI & Agentic Hallucination Mitigation',
+    'Accenture Labs & IIT Bangalore',
+    'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=100&auto=format&fit=crop&q=80',
     'Bangalore / Remote',
-    'Remote',
-    JSON.stringify(['Selenium / Cypress / Playwright', 'Python / JavaScript', 'CI/CD', 'API Testing', 'Git']),
-    JSON.stringify(['Performance Testing', 'Jira API', 'Docker']),
-    '₹55,000 / month',
+    'Hybrid',
+    JSON.stringify(['LLMs', 'Formal Verification', 'Natural Language Processing', 'Research Methodology']),
     null,
-    '6 Months (Summer 2026)',
-    '20 Oct 2026',
-    92,
-    'Ensure bulletproof software quality across Jira and Confluence cloud services by constructing end-to-end automated testing pipelines.',
+    '₹15,00,000 Joint Research Budget',
+    null,
+    '12 Months',
+    '30 Oct 2026',
+    95,
+    'Joint research project investigating guardrail architectures, semantic truth probes, and constraint decoding in enterprise reasoning agents.',
     JSON.stringify([
-      'Write reliable end-to-end browser tests in Playwright and Cypress',
-      'Construct automated API regression suites integrated into GitHub Actions CI',
-      'Conduct load stress testing to identify database query bottlenecks'
+      'Conduct rigorous experimental benchmarking on enterprise hallucination datasets',
+      'Co-advise 2 funded PhD research scholars and student interns',
+      'Publish high-impact findings at ACL, NeurIPS, or IEEE Trans on Software Engineering'
     ]),
-    'B.Tech in Computer Science or Information Technology graduating in 2026 or 2027.',
-    210,
+    'Researchers with active AI labs and proven peer-reviewed publications in NLP/ML.',
+    21,
     '1 week ago',
-    JSON.stringify({ size: '11,000+ employees', industry: 'Developer Tools & Collaboration Software', website: 'https://atlassian.com', rating: 4.7 }),
+    JSON.stringify({ size: '700,000+ employees', industry: 'Global Professional Services & Innovation Labs', website: 'https://accenture.com', rating: 4.6 }),
     null,
-    JSON.stringify(['qa-automation-engineer', 'fullstack-engineer']),
-    JSON.stringify(['QA & Test Automation Engineer', 'Full Stack Software Engineer']),
-    JSON.stringify(['Computer Science & Engineering', 'Information Technology'])
+    JSON.stringify(['nlp-engineer', 'ai-ml-engineer']),
+    JSON.stringify(['GenAI & NLP Specialist', 'AI & Machine Learning Engineer']),
+    JSON.stringify(['Computer Science & Engineering', 'Artificial Intelligence & Data Science'])
   );
 
   // Applications
@@ -1215,8 +953,9 @@ function seedDataIfEmpty(force = false) {
   const insertProg = db.prepare(`
     INSERT INTO learning_programs (
       id, title, category, provider, logo, duration, level, skills_gained,
-      has_certification, rating, enrolled_count, deadline, description, mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      has_certification, rating, enrolled_count, deadline, description, mode,
+      video_url, video_title, video_duration
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   insertProg.run(
@@ -1233,7 +972,10 @@ function seedDataIfEmpty(force = false) {
     3420,
     'Rolling Admission',
     'Master enterprise cloud fundamentals with production labs, architectural case studies, and official voucher preparation.',
-    'Live Online'
+    'Live Online',
+    'https://www.youtube.com/embed/SOTamWNgDKc',
+    'Module 1: Enterprise AWS Cloud Architecture, VPC & Core Infrastructure',
+    '65 mins'
   );
 
   insertProg.run(
@@ -1250,7 +992,10 @@ function seedDataIfEmpty(force = false) {
     5120,
     'Starts 15 Oct 2026',
     'Build production-grade GenAI assistants, retrieval augmented systems, and prompt pipelines with hands-on GPU labs.',
-    'Live Online'
+    'Live Online',
+    'https://www.youtube.com/embed/kCc8FmEb1nY',
+    'Lecture 1: Deep Learning & Transformers Architecture from Scratch',
+    '75 mins'
   );
 
   // Events
@@ -1290,7 +1035,242 @@ function seedDataIfEmpty(force = false) {
 }
 
 function seedExtraTablesIfEmpty(force = false) {
-  // Projects, certifications, and internships start empty for authentic student profiles
+  // Seed demo opportunities if empty
+  const oppCount = (db.prepare('SELECT COUNT(*) as c FROM opportunities').get() as any).c;
+  if (oppCount === 0) {
+    const insertOpp = db.prepare(`
+      INSERT OR REPLACE INTO opportunities (
+        id, type, title, organization, logo, location, work_mode, required_skills,
+        preferred_skills, salary_or_stipend, experience, duration, deadline, match_percentage,
+        description, responsibilities, eligibility, applicants_count, posted_date, company_details, created_by,
+        career_role_ids, target_roles, eligible_branches, status,
+        min_skill_score, min_cgpa, min_match_percentage, min_verified_certs, benchmark_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertOpp.run(
+      'opp-1',
+      'job',
+      'Software Development Engineer - I (Full Stack)',
+      'TechNova Solutions',
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+      'Bangalore / Hybrid',
+      'Hybrid',
+      JSON.stringify(['React', 'TypeScript', 'Node.js', 'PostgreSQL']),
+      JSON.stringify(['Docker', 'AWS', 'Next.js', 'Redis']),
+      '₹14,00,000 - ₹18,00,000 / annum',
+      'Fresher (Batch of 2026)',
+      null,
+      '2026-10-31',
+      92,
+      'Join TechNova’s Core Engineering team to build high-scale cloud platforms, distributed GraphQL services, and responsive web experiences.',
+      JSON.stringify([
+        'Design and ship production React and TypeScript web features',
+        'Implement resilient REST and GraphQL microservices in Node.js',
+        'Participate in continuous deployment and automated testing pipelines'
+      ]),
+      'B.Tech in CSE / ISE / AI&DS / ECE with minimum 7.5 CGPA and 78+ verified skill score.',
+      14,
+      '1 day ago',
+      JSON.stringify({ size: '1,000+ employees', industry: 'Software & Technology', website: 'https://technova.io', rating: 4.8 }),
+      'usr-industry-1',
+      JSON.stringify(['fullstack-engineer', 'frontend-engineer', 'backend-engineer']),
+      JSON.stringify(['Software Development Engineer', 'Full-Stack Developer']),
+      JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science']),
+      'Active',
+      78,
+      7.5,
+      70,
+      1,
+      'Tier-1 SDE Benchmark: Requires overall skill score ≥ 78%, CGPA ≥ 7.5, skill match ≥ 70%, and at least 1 verified certificate.'
+    );
+
+    insertOpp.run(
+      'opp-2',
+      'internship',
+      'Full Stack Engineering Intern (Summer 2026)',
+      'TechNova Solutions',
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+      'Hyderabad / Hybrid',
+      'Hybrid',
+      JSON.stringify(['React', 'JavaScript', 'Node.js', 'SQL']),
+      JSON.stringify(['TypeScript', 'Tailwind CSS', 'Git']),
+      '₹30,000 / month',
+      'Undergraduate (3rd / 4th Year)',
+      '6 Months (Jan - Jun 2026)',
+      '2026-10-15',
+      88,
+      'Hands-on product development internship building student portfolio tools, real-time messaging, and analytics dashboards.',
+      JSON.stringify([
+        'Develop user-facing UI components in React and modern CSS',
+        'Build and test backend database CRUD endpoints',
+        'Collaborate with mentors in bi-weekly sprint reviews'
+      ]),
+      'Pre-final or final year engineering students with active project work and minimum 7.0 CGPA.',
+      28,
+      '2 days ago',
+      JSON.stringify({ size: '1,000+ employees', industry: 'Software & Technology', website: 'https://technova.io', rating: 4.8 }),
+      'usr-industry-1',
+      JSON.stringify(['fullstack-engineer', 'frontend-engineer']),
+      JSON.stringify(['Full Stack Engineering Intern', 'Web Developer Intern']),
+      JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology']),
+      'Active',
+      70,
+      7.0,
+      60,
+      0,
+      'Internship Benchmark: Requires skill score ≥ 70%, CGPA ≥ 7.0, and minimum 60% skill match.'
+    );
+
+    insertOpp.run(
+      'opp-3',
+      'job',
+      'Cloud DevOps & Platform Engineer',
+      'Microsoft',
+      'https://images.unsplash.com/photo-1642132652859-3ef5a1048fd1?w=100&auto=format&fit=crop&q=80',
+      'Hyderabad / Bangalore',
+      'Hybrid',
+      JSON.stringify(['AWS', 'Docker', 'Kubernetes', 'Linux', 'CI/CD Pipelines']),
+      JSON.stringify(['Terraform', 'Python', 'Go', 'Prometheus']),
+      '₹24,00,000 - ₹32,00,000 / annum',
+      'Fresher to 1 Year',
+      null,
+      '2026-11-15',
+      84,
+      'Architect, automate, and scale cloud infrastructure platforms across Azure and multi-cloud environments.',
+      JSON.stringify([
+        'Author infrastructure-as-code scripts and automated CI/CD pipelines',
+        'Manage container orchestration clusters and zero-downtime rollouts',
+        'Implement system observability, metrics, and incident alerting'
+      ]),
+      'B.Tech/M.Tech with strong systems fundamentals, minimum 8.0 CGPA, and 82+ skill score.',
+      42,
+      '3 days ago',
+      JSON.stringify({ size: '200,000+ employees', industry: 'Cloud & Enterprise Tech', website: 'https://microsoft.com', rating: 4.9 }),
+      'usr-industry-1',
+      JSON.stringify(['cloud-devops-engineer', 'backend-engineer']),
+      JSON.stringify(['Cloud DevOps Engineer', 'Site Reliability Engineer']),
+      JSON.stringify(['Computer Science & Engineering', 'Information Technology', 'Electronics & Communication Engineering']),
+      'Active',
+      82,
+      8.0,
+      75,
+      1,
+      'Enterprise Standard Benchmark: Requires skill score ≥ 82%, CGPA ≥ 8.0, skill match ≥ 75%, and 1+ accredited verified certificate.'
+    );
+
+    insertOpp.run(
+      'opp-4',
+      'internship',
+      'AI/ML Systems & Computer Vision Research Intern',
+      'Google DeepMind Partner Lab',
+      'https://images.unsplash.com/photo-1573164713988-8665fc963095?w=100&auto=format&fit=crop&q=80',
+      'Bangalore / Remote',
+      'Remote',
+      JSON.stringify(['Python', 'PyTorch', 'Deep Learning', 'Computer Vision']),
+      JSON.stringify(['TensorFlow', 'CUDA', 'OpenCV', 'MLflow']),
+      '₹50,000 / month',
+      'Undergraduate / Masters Student',
+      '6 Months (Spring 2026)',
+      '2026-10-20',
+      91,
+      'Research and deploy cutting-edge deep learning visual transformers and spatial neural representation models.',
+      JSON.stringify([
+        'Conduct algorithmic experiments on vision transformers and multimodal diffusion models',
+        'Profile GPU memory utilization and latency bottlenecks in PyTorch',
+        'Co-author research technical reports and open-source benchmarks'
+      ]),
+      'Students with strong mathematical foundations, minimum 8.5 CGPA, and 85+ skill score.',
+      19,
+      'Just now',
+      JSON.stringify({ size: '5,000+ researchers', industry: 'Artificial Intelligence & Research', website: 'https://deepmind.google', rating: 4.95 }),
+      'usr-industry-1',
+      JSON.stringify(['data-scientist', 'ai-ml-engineer']),
+      JSON.stringify(['AI Research Intern', 'Machine Learning Engineer']),
+      JSON.stringify(['Computer Science & Engineering', 'Artificial Intelligence & Data Science']),
+      'Active',
+      85,
+      8.5,
+      75,
+      1,
+      'High-Bar AI Benchmark: Requires skill score ≥ 85%, CGPA ≥ 8.5, skill match ≥ 75%, and 1+ verified certificate.'
+    );
+
+    insertOpp.run(
+      'opp-5',
+      'job',
+      'Frontend UI/UX Product Engineer',
+      'Atlassian',
+      'https://images.unsplash.com/photo-1551434678-e076c223a692?w=100&auto=format&fit=crop&q=80',
+      'Bangalore',
+      'On-site',
+      JSON.stringify(['React', 'TypeScript', 'Tailwind CSS', 'Web Performance']),
+      JSON.stringify(['Next.js', 'Figma', 'GraphQL', 'Jest']),
+      '₹18,00,000 - ₹22,00,000 / annum',
+      'Fresher (Batch of 2026)',
+      null,
+      '2026-11-05',
+      89,
+      'Craft delightful, accessible, high-performance web products used by millions of developers and enterprise teams worldwide.',
+      JSON.stringify([
+        'Build accessible design system components adhering to W3C standards',
+        'Optimize Core Web Vitals (LCP, INP, CLS) across large web surfaces',
+        'Collaborate closely with product designers and telemetry engineers'
+      ]),
+      'B.Tech graduates with strong portfolio/code samples, minimum 7.0 CGPA, and 75+ skill score.',
+      23,
+      '4 days ago',
+      JSON.stringify({ size: '10,000+ employees', industry: 'Enterprise Collaboration Software', website: 'https://atlassian.com', rating: 4.7 }),
+      'usr-industry-1',
+      JSON.stringify(['frontend-engineer', 'fullstack-engineer']),
+      JSON.stringify(['Frontend Engineer', 'UI/UX Developer']),
+      JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology']),
+      'Active',
+      75,
+      7.0,
+      65,
+      0,
+      'Standard Product Benchmark: Requires skill score ≥ 75%, CGPA ≥ 7.0, and skill match ≥ 65%.'
+    );
+
+    insertOpp.run(
+      'opp-6',
+      'fdp',
+      'Industry Immersion: Cloud-Native Microservices & AI Engineering',
+      'Infosys Springboard & Apex Tech',
+      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80',
+      'Mysore Campus / Virtual',
+      'Hybrid',
+      JSON.stringify(['Distributed Computing', 'Cloud Architecture', 'Curriculum Design', 'Docker']),
+      JSON.stringify(['Kubernetes', 'FastAPI']),
+      'Sponsored Industry Fellowship + Certificate',
+      null,
+      '2 Weeks (Full-time intensive)',
+      '28 Sep 2026',
+      96,
+      'A national professional development initiative on modern cloud deployment, observability, and gen-AI microservices.',
+      JSON.stringify([
+        'Attend daily live architecture labs conducted by Infosys Chief System Architects',
+        'Refactor curriculum modules to reflect 2026 industry standards',
+        'Develop an industry-sponsored Capstone project template for final year students'
+      ]),
+      'Open to engineering graduates, researchers, and technical leads across India.',
+      68,
+      '3 days ago',
+      JSON.stringify({ size: '300,000+ employees', industry: 'IT & Digital Transformation', website: 'https://infosys.com', rating: 4.4 }),
+      'usr-industry-1',
+      JSON.stringify(['cloud-devops-engineer']),
+      JSON.stringify(['Cloud & DevOps Engineer']),
+      JSON.stringify(['All B.Tech Branches', 'Computer Science & Engineering']),
+      'Active',
+      72,
+      7.0,
+      60,
+      0,
+      'Fellowship Benchmark: Open to graduating engineers with 70%+ score.'
+    );
+  }
+
 
   const driveCount = (db.prepare('SELECT COUNT(*) as c FROM placement_drives').get() as any).c;
   if (driveCount === 0) {
@@ -1309,5 +1289,365 @@ function seedExtraTablesIfEmpty(force = false) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insertCollab.run('col-1', 'TechNova AI Center of Excellence & GPU Cloud Lab', 'Industry Partnership', 'TechNova Solutions', 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80', 'Apex Institute of Technology', '15 Jul 2026', '3 Years MOU', 'MOU Signed', 'Dr. Ramesh Sharma & Arjun Mehta', '350+ Students Trained, 4 Joint Patents Filed', 'Jointly established advanced machine learning compute lab with 8x NVIDIA H100 SXM5 GPUs.');
+  }
+
+  // Ensure institution courses exist in learning_programs
+  const instCourse1 = db.prepare('SELECT 1 FROM learning_programs WHERE id = ?').get('lp-inst-1');
+  if (!instCourse1) {
+    const insertInstProg = db.prepare(`
+      INSERT OR REPLACE INTO learning_programs (
+        id, title, category, provider, logo, duration, level, skills_gained, has_certification,
+        rating, enrolled_count, deadline, description, mode, eligible_branches, mentor_name,
+        venue_or_link, syllabus_modules, schedule_timing, department, max_seats, status,
+        video_url, video_title, video_duration
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertInstProg.run(
+      'lp-inst-1',
+      'Full-Stack Web Engineering with React & Node',
+      'Course',
+      'Apex Institute • Dept of CS',
+      'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=100&auto=format&fit=crop&q=80',
+      '8 Weeks (16 Interactive Sessions)',
+      'Intermediate',
+      JSON.stringify(['React 18', 'Node.js', 'Express', 'PostgreSQL', 'Docker', 'REST Security']),
+      1,
+      4.92,
+      68,
+      '2026-10-30',
+      'Comprehensive mentor-led full-stack development cohort covering modern component architecture, state machines, secure backend APIs, and Dockerized cloud deployment.',
+      'Live Online',
+      JSON.stringify(['Computer Science & Engineering', 'Information Science & Engineering', 'Artificial Intelligence & Data Science']),
+      'Dr. Ramesh Sharma (Dean & CS Faculty)',
+      'Google Meet (meet.google.com/cs-fullstack-2026) & GitHub Classroom',
+      JSON.stringify([
+        { moduleNumber: 1, title: 'Modern React 18 Architecture & Hooks', duration: 'Week 1-2', topics: ['Component Lifecycle', 'Custom Hooks', 'Tailwind & UI State'] },
+        { moduleNumber: 2, title: 'Scalable Node.js & Express APIs', duration: 'Week 3-4', topics: ['Middleware Pipelines', 'Input Validation', 'Async Routing'] },
+        { moduleNumber: 3, title: 'PostgreSQL Relational Design & Prisma', duration: 'Week 5-6', topics: ['Indexing Strategies', 'Migrations', 'Connection Pooling'] },
+        { moduleNumber: 4, title: 'Security, JWT & Dockerized Deployment', duration: 'Week 7-8', topics: ['JWT Refresh Flow', 'Containerization', 'CI/CD Pipelines'] }
+      ]),
+      'Every Tuesday & Thursday • 5:00 PM - 7:00 PM IST',
+      'Computer Science & Engineering',
+      80,
+      'Live & Accepting',
+      'https://www.youtube.com/embed/nu_pCVPKzTk',
+      'Lecture 1: Modern Full-Stack Web Architecture, React 18 & RESTful APIs',
+      '55 mins'
+    );
+
+    insertInstProg.run(
+      'lp-inst-2',
+      'Embedded Systems & IoT Robotics Workshop',
+      'Workshop',
+      'Apex Institute • Dept of ECE & IoT CoE',
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=100&auto=format&fit=crop&q=80',
+      '6 Weeks (Hands-on Lab Track)',
+      'Intermediate',
+      JSON.stringify(['STM32 ARM Cortex', 'FreeRTOS', 'I2C/SPI Protocols', 'Sensor Interfacing', 'PCB Soldering']),
+      1,
+      4.95,
+      42,
+      '2026-10-25',
+      'Hands-on physical laboratory workshop mastering embedded microcontrollers, real-time operating systems (FreeRTOS), hardware bus debugging, and autonomous mobile robotics.',
+      'Classroom',
+      JSON.stringify(['Electronics & Communication', 'Electrical & Electronics', 'Mechanical Engineering']),
+      'Prof. Ananya Sen (ECE Robotics CoE)',
+      'Hardware & Embedded Systems Lab 304, Block C (In-Person)',
+      JSON.stringify([
+        { moduleNumber: 1, title: 'Microcontroller Architecture & Bare Metal C', duration: 'Week 1-2', topics: ['GPIO Registers', 'Clocks & Timers', 'Interrupt Vectors'] },
+        { moduleNumber: 2, title: 'Bus Protocols: UART, SPI & I2C', duration: 'Week 3-4', topics: ['Logic Analyzers', 'Oscilloscope Debugging', 'Sensor Fusion'] },
+        { moduleNumber: 3, title: 'FreeRTOS Multitasking & Capstone Rover', duration: 'Week 5-6', topics: ['Task Scheduling', 'Semaphores & Queues', 'Autonomous Rover Build'] }
+      ]),
+      'Mon, Wed, Fri • 3:30 PM - 5:30 PM IST (Lab In-Person)',
+      'Electronics & Communication',
+      50,
+      'Live & Accepting',
+      'https://www.youtube.com/embed/hnj-7XwTYRI',
+      'Lab 1: Embedded Microcontroller Architecture & Sensor Interfacing',
+      '48 mins'
+    );
+
+    insertInstProg.run(
+      'lp-inst-3',
+      'Applied Machine Learning & MLOps in Production',
+      'Course',
+      'Apex Institute • Dept of AI & Data Science',
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+      '10 Weeks (Hybrid)',
+      'Advanced',
+      JSON.stringify(['Scikit-Learn', 'PyTorch', 'MLflow', 'Docker', 'Feature Stores', 'Model Monitoring']),
+      1,
+      4.89,
+      56,
+      '2026-11-05',
+      'End-to-end applied machine learning track taking students from foundational statistical modeling to enterprise containerized inference pipelines and drift monitoring.',
+      'Hybrid',
+      JSON.stringify(['Artificial Intelligence & Data Science', 'Computer Science & Engineering', 'Information Science & Engineering']),
+      'Dr. Vikramaditya Rao (AI & DS Lab Head)',
+      'Seminar Hall B (Offline) & MS Teams (Online Sessions)',
+      JSON.stringify([
+        { moduleNumber: 1, title: 'Advanced Feature Engineering & Ensembles', duration: 'Week 1-3', topics: ['EDA Pipelines', 'XGBoost & LightGBM', 'Cross-Validation'] },
+        { moduleNumber: 2, title: 'Deep Neural Networks with PyTorch', duration: 'Week 4-6', topics: ['Tensors', 'Backpropagation', 'Transfer Learning', 'Embeddings'] },
+        { moduleNumber: 3, title: 'MLOps: Experiment Tracking & Cloud Deployment', duration: 'Week 7-10', topics: ['MLflow Registries', 'FastAPI Serving', 'Docker & Model Drift'] }
+      ]),
+      'Saturdays 10:00 AM - 1:00 PM (In-Person) + Wed 6 PM Online',
+      'Artificial Intelligence & Data Science',
+      60,
+      'Live & Accepting',
+      'https://www.youtube.com/embed/GIsg-ZUy0MY',
+      'Masterclass: End-to-End MLOps, PyTorch Models & Production Deployment',
+      '52 mins'
+    );
+
+    insertInstProg.run(
+      'lp-inst-4',
+      'Competitive Programming & Advanced Data Structures',
+      'Bootcamp',
+      'Apex Institute Placement Cell',
+      'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=100&auto=format&fit=crop&q=80',
+      '12 Weeks (Intensive Problem Solving)',
+      'Intermediate',
+      JSON.stringify(['Dynamic Programming', 'Graph Theory', 'Bitmasking', 'Segment Trees', 'Trie']),
+      1,
+      4.96,
+      95,
+      '2026-11-15',
+      'Rigorous algorithm design and competitive coding practice tailored to crack Tier-1 product company coding rounds (Google, Amazon, Microsoft, Atlassian).',
+      'Live Online',
+      JSON.stringify(['Computer Science & Engineering', 'Information Science & Engineering', 'All Engineering Departments']),
+      'Prof. Sandeep Kulkarni (Coding Coach)',
+      'Discord Live & HackerRank Private Arena',
+      JSON.stringify([
+        { moduleNumber: 1, title: 'Advanced Recursion & Dynamic Programming', duration: 'Week 1-4', topics: ['Memoization vs Tabulation', '0/1 Knapsack', 'DP on Trees'] },
+        { moduleNumber: 2, title: 'Graph Algorithms & Shortest Path', duration: 'Week 5-8', topics: ['Dijkstra', 'Bellman-Ford', 'Disjoint Set Union', 'Topological Sort'] },
+        { moduleNumber: 3, title: 'Range Queries & Contest Simulation', duration: 'Week 9-12', topics: ['Segment Trees', 'Fenwick Trees', 'Weekly Timed Contests'] }
+      ]),
+      'Mon & Thu • 6:30 PM - 8:30 PM IST',
+      'Computer Science & Engineering',
+      120,
+      'Live & Accepting',
+      'https://www.youtube.com/embed/RBSGKlAvoiM',
+      'Session 1: Advanced Dynamic Programming & Graph Theory Algorithms',
+      '60 mins'
+    );
+  }
+
+  // Seed mentee course enrollments if empty
+  const menteeCourseCount = (db.prepare('SELECT COUNT(*) as c FROM mentee_course_enrollments').get() as any).c;
+  if (menteeCourseCount === 0) {
+    const insertMenteeCourse = db.prepare(`
+      INSERT INTO mentee_course_enrollments (
+        id, course_id, course_title, course_mode, student_id, student_name, student_email,
+        student_avatar, department, usn, cgpa, applied_at, statement_of_purpose, permission_status,
+        permission_decided_at, mentor_id, mentor_name, started_at, progress_percentage, current_module,
+        completed_assignments, total_assignments, assessment_score, last_active_at, mentor_notes, is_certified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    // Pending Applications
+    insertMenteeCourse.run(
+      'mce-01',
+      'lp-inst-1',
+      'Full-Stack Web Engineering with React & Node',
+      'Live Online',
+      'usr-student-2',
+      'Priya Sharma',
+      'priya.sharma@apextech.ac.in',
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
+      'Computer Science & Engineering',
+      '1AP23CS084',
+      8.92,
+      '2026-09-08T10:30:00Z',
+      'Looking to build deep full-stack engineering skills to clear technical interviews for upcoming Tier-1 campus placement drives.',
+      'pending',
+      null,
+      'usr-institution-1',
+      'Dr. Ramesh Sharma',
+      null,
+      0,
+      'Awaiting Admission Approval',
+      0,
+      5,
+      null,
+      '2026-09-10T14:30:00Z',
+      'Candidate has solid OOP fundamentals; ready for mentor review.',
+      0
+    );
+
+    insertMenteeCourse.run(
+      'mce-02',
+      'lp-inst-2',
+      'Embedded Systems & IoT Robotics Workshop',
+      'Classroom',
+      'usr-student-3',
+      'Rohan Verma',
+      'rohan.verma@apextech.ac.in',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+      'Electronics & Communication',
+      '1AP23EC042',
+      8.45,
+      '2026-09-09T14:15:00Z',
+      'Specializing in edge microcontrollers, sensors, and robotics for our final-year Smart Mobility capstone project.',
+      'pending',
+      null,
+      'usr-institution-1',
+      'Prof. Ananya Sen',
+      null,
+      0,
+      'Awaiting Admission Approval',
+      0,
+      5,
+      null,
+      '2026-09-11T10:15:00Z',
+      'Lab workstation 12 allocated pending dean approval.',
+      0
+    );
+
+    insertMenteeCourse.run(
+      'mce-03',
+      'lp-inst-3',
+      'Applied Machine Learning & MLOps in Production',
+      'Hybrid',
+      'usr-student-4',
+      'Aarav Patel',
+      'aarav.patel@apextech.ac.in',
+      'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&auto=format&fit=crop&q=80',
+      'Artificial Intelligence & Data Science',
+      '1AP23AI019',
+      8.15,
+      '2026-09-10T09:00:00Z',
+      'Desire to master cloud containerized model deployment and pipeline monitoring for AI research fellowship.',
+      'pending',
+      null,
+      'usr-institution-1',
+      'Dr. Vikramaditya Rao',
+      null,
+      0,
+      'Awaiting Admission Approval',
+      0,
+      6,
+      null,
+      '2026-09-11T12:00:00Z',
+      'Prerequisite Python score verified.',
+      0
+    );
+
+    // Approved & Progressing Mentees
+    insertMenteeCourse.run(
+      'mce-04',
+      'lp-inst-1',
+      'Full-Stack Web Engineering with React & Node',
+      'Live Online',
+      'usr-student-1',
+      'Ananya Rao',
+      'student@careersync.com',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      'Computer Science & Engineering',
+      '1AP22CS014',
+      9.24,
+      '2026-08-15T10:00:00Z',
+      'Targeting product company software roles; aiming to master full-stack deployment and asynchronous message queues.',
+      'approved',
+      '2026-08-16T11:00:00Z',
+      'usr-institution-1',
+      'Dr. Ramesh Sharma',
+      '2026-08-18T09:00:00Z',
+      75,
+      'Module 4: Security, JWT & Dockerized Deployment',
+      4,
+      5,
+      94.5,
+      '2026-09-11T18:45:00Z',
+      'Exceptional backend code modularity and clean architectural abstraction. Ready for capstone evaluation.',
+      0
+    );
+
+    insertMenteeCourse.run(
+      'mce-05',
+      'lp-inst-3',
+      'Applied Machine Learning & MLOps in Production',
+      'Hybrid',
+      'usr-student-5',
+      'Devansh Gupta',
+      'devansh.gupta@apextech.ac.in',
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80',
+      'Artificial Intelligence & Data Science',
+      '1AP22AI031',
+      8.78,
+      '2026-08-12T11:00:00Z',
+      'Building predictive data modeling and MLOps tools for healthcare diagnostics.',
+      'approved',
+      '2026-08-13T12:00:00Z',
+      'usr-institution-1',
+      'Dr. Vikramaditya Rao',
+      '2026-08-15T10:00:00Z',
+      50,
+      'Module 2: Deep Neural Networks with PyTorch',
+      3,
+      6,
+      88.0,
+      '2026-09-10T14:20:00Z',
+      'Solid intuition for loss landscapes and gradient optimizers. Advised to implement learning rate schedulers.',
+      0
+    );
+
+    insertMenteeCourse.run(
+      'mce-06',
+      'lp-inst-2',
+      'Embedded Systems & IoT Robotics Workshop',
+      'Classroom',
+      'usr-student-6',
+      'Sneha Reddy',
+      'sneha.reddy@apextech.ac.in',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80',
+      'Electronics & Communication',
+      '1AP22EC058',
+      9.42,
+      '2026-08-01T09:30:00Z',
+      'Passionate about automotive robotics, RTOS kernel hacking, and CAN bus vehicle telemetry.',
+      'approved',
+      '2026-08-02T10:00:00Z',
+      'usr-institution-1',
+      'Prof. Ananya Sen',
+      '2026-08-05T09:00:00Z',
+      100,
+      'Module 3: FreeRTOS Multitasking & Capstone Rover',
+      5,
+      5,
+      98.0,
+      '2026-09-09T17:30:00Z',
+      'Highest distinction in physical hardware demo. Rover completed obstacle avoidance course in record time. Certified!',
+      1
+    );
+
+    insertMenteeCourse.run(
+      'mce-07',
+      'lp-inst-4',
+      'Competitive Programming & Advanced Data Structures',
+      'Live Online',
+      'usr-student-7',
+      'Kavya Menon',
+      'kavya.menon@apextech.ac.in',
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
+      'Information Science & Engineering',
+      '1AP23IS027',
+      8.35,
+      '2026-08-20T16:00:00Z',
+      'Preparing for Tier-1 coding screening rounds; focusing on dynamic programming and graph trees.',
+      'approved',
+      '2026-08-21T09:30:00Z',
+      'usr-institution-1',
+      'Prof. Sandeep Kulkarni',
+      '2026-08-22T17:00:00Z',
+      35,
+      'Module 2: Graph Algorithms & Shortest Path',
+      2,
+      6,
+      82.5,
+      '2026-09-11T20:10:00Z',
+      'Good progress on DP on trees; encouraged to join weekly Sunday contest simulation.',
+      0
+    );
   }
 }

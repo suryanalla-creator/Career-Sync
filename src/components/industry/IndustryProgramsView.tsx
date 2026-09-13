@@ -20,10 +20,16 @@ import {
   ExternalLink,
   Target,
   Flame,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft,
+  SlidersHorizontal,
+  ChevronDown
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LearningProgram } from '../../types';
+import { mockCandidates } from '../../data/mockData';
+import { api } from '../../services/api';
+import { CandidateProfileAndPortfolioModal } from './CandidateProfileAndPortfolioModal';
 
 export const IndustryProgramsView: React.FC = () => {
   const { learningPrograms, publishProgram, updateProgramStatus, triggerConfetti } = useApp();
@@ -35,6 +41,101 @@ export const IndustryProgramsView: React.FC = () => {
   const [selectedStatusTab, setSelectedStatusTab] = useState<'All' | 'Live' | 'Closed' | 'Archived'>('All');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusActionLoadingId, setStatusActionLoadingId] = useState<string | null>(null);
+
+  // Program Applicants Management State
+  const [selectedProgramForApplicants, setSelectedProgramForApplicants] = useState<LearningProgram | null>(null);
+  const [programApplicants, setProgramApplicants] = useState<any[]>([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [applicantStageFilter, setApplicantStageFilter] = useState('All');
+  const [applicantSearchQuery, setApplicantSearchQuery] = useState('');
+  const [inspectedCandidate, setInspectedCandidate] = useState<any | null>(null);
+
+  const handleViewApplicants = async (prog: LearningProgram) => {
+    setSelectedProgramForApplicants(prog);
+    setLoadingApplicants(true);
+    try {
+      const res: any = await api.applications.getAll({ opportunityId: prog.id });
+      if (Array.isArray(res) && res.length > 0) {
+        setProgramApplicants(res);
+      } else {
+        // Enriched mock applicants for this learning program
+        const fallbackApps = mockCandidates.map((c, idx) => ({
+          id: `app-prog-${prog.id}-${c.id}`,
+          opportunityId: prog.id,
+          candidateId: c.id,
+          studentName: c.name,
+          studentId: c.studentId || `#84920${String(c.id).replace(/\D/g, '').padStart(5, '0')}`,
+          avatar: c.avatar,
+          department: c.department,
+          degree: c.degree,
+          college: c.college,
+          graduationYear: c.graduationYear,
+          cgpa: c.cgpa,
+          skillScore: c.skillScore,
+          matchScore: Math.min(98, (c.skillScore || 80) + ((idx % 3) * 3)),
+          topSkills: c.topSkills,
+          appliedDate: `${10 + (idx % 12)} Nov 2026`,
+          currentStage: idx === 0 ? 'Shortlisted' : idx === 1 ? 'Interview' : idx === 2 ? 'Selected' : idx === 3 ? 'Screening' : 'Applied',
+          isVerified: c.isVerified
+        }));
+        setProgramApplicants(fallbackApps);
+      }
+    } catch (err) {
+      console.warn('Could not fetch program applicants from API, using fallback:', err);
+      const fallbackApps = mockCandidates.map((c, idx) => ({
+        id: `app-prog-${prog.id}-${c.id}`,
+        opportunityId: prog.id,
+        candidateId: c.id,
+        studentName: c.name,
+        studentId: c.studentId || `#84920${String(c.id).replace(/\D/g, '').padStart(5, '0')}`,
+        avatar: c.avatar,
+        department: c.department,
+        degree: c.degree,
+        college: c.college,
+        graduationYear: c.graduationYear,
+        cgpa: c.cgpa,
+        skillScore: c.skillScore,
+        matchScore: Math.min(98, (c.skillScore || 80) + ((idx % 3) * 3)),
+        topSkills: c.topSkills,
+        appliedDate: `${10 + (idx % 12)} Nov 2026`,
+        currentStage: idx === 0 ? 'Shortlisted' : idx === 1 ? 'Interview' : idx === 2 ? 'Selected' : idx === 3 ? 'Screening' : 'Applied',
+        isVerified: c.isVerified
+      }));
+      setProgramApplicants(fallbackApps);
+    } finally {
+      setLoadingApplicants(false);
+    }
+  };
+
+  const handleUpdateApplicantStage = async (appId: string, newStage: string) => {
+    try {
+      await api.applications.updateStage(appId, newStage, `Stage updated to ${newStage} by recruiter.`);
+      setProgramApplicants((prev) =>
+        prev.map((a) => (a.id === appId ? { ...a, currentStage: newStage } : a))
+      );
+      triggerConfetti();
+    } catch (err: any) {
+      setProgramApplicants((prev) =>
+        prev.map((a) => (a.id === appId ? { ...a, currentStage: newStage } : a))
+      );
+    }
+  };
+
+  const filteredProgramApplicants = programApplicants.filter((app) => {
+    if (applicantStageFilter !== 'All' && app.currentStage !== applicantStageFilter) {
+      return false;
+    }
+    if (applicantSearchQuery.trim()) {
+      const q = applicantSearchQuery.toLowerCase().trim();
+      const matchName = app.studentName?.toLowerCase().includes(q);
+      const matchId = app.studentId?.toLowerCase().includes(q.replace(/^#/, ''));
+      const matchDept = app.department?.toLowerCase().includes(q);
+      const matchCollege = app.college?.toLowerCase().includes(q);
+      const matchSkills = Array.isArray(app.topSkills) && app.topSkills.some((s: string) => s.toLowerCase().includes(q));
+      if (!matchName && !matchId && !matchDept && !matchCollege && !matchSkills) return false;
+    }
+    return true;
+  });
 
   // Form State for Publishing a Program
   const [title, setTitle] = useState('');
@@ -246,240 +347,461 @@ export const IndustryProgramsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Filters & Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              placeholder="Search programs by title, skills (React, Docker, AI), or curriculum..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200 focus:border-purple-500 focus:outline-none transition-colors"
-            />
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto text-xs font-semibold">
-            {['All', 'Bootcamp', 'Workshop', 'Certification', 'Industry Training'].map(cat => (
+      {/* 2. PROGRAM APPLICANTS SUB-VIEW OR PROGRAM BROWSER */}
+      {selectedProgramForApplicants ? (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Top Banner / Breadcrumb */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
               <button
-                key={cat}
-                onClick={() => setSelectedCategoryTab(cat)}
-                className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
-                  selectedCategoryTab === cat
-                    ? 'bg-purple-600 text-white font-bold shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
+                onClick={() => setSelectedProgramForApplicants(null)}
+                className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1 mb-1 cursor-pointer"
               >
-                {cat}
+                <ArrowLeft className="w-3.5 h-3.5" /> Back to All Programs
               </button>
-            ))}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-black text-slate-900">{selectedProgramForApplicants.title}</h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                  {selectedProgramForApplicants.category} • {selectedProgramForApplicants.duration}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                {selectedProgramForApplicants.provider} • Mode: {selectedProgramForApplicants.mode || 'Live Online'} • Max Seats: {selectedProgramForApplicants.maxSeats || 150}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1.5 bg-purple-50 text-purple-800 rounded-xl text-xs font-black border border-purple-100 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-purple-600" />
+                {programApplicants.length} Total Applicants / Enrolled
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* Status Filters: All, Live & Accepting, Bookings Closed, Total Closed */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs font-bold">
-          <span className="text-slate-400 text-[11px] uppercase tracking-wider mr-1">Booking Status:</span>
-          <button
-            onClick={() => setSelectedStatusTab('All')}
-            className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
-              selectedStatusTab === 'All'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-            }`}
-          >
-            All ({learningPrograms.length})
-          </button>
-          <button
-            onClick={() => setSelectedStatusTab('Live')}
-            className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedStatusTab === 'Live'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Live &amp; Accepting ({liveCount})
-          </button>
-          <button
-            onClick={() => setSelectedStatusTab('Closed')}
-            className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedStatusTab === 'Closed'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-            }`}
-          >
-            <AlertCircle className="w-3.5 h-3.5" />
-            Bookings Closed ({closedCount})
-          </button>
-          <button
-            onClick={() => setSelectedStatusTab('Archived')}
-            className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
-              selectedStatusTab === 'Archived'
-                ? 'bg-slate-700 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Total Closed / Archived ({archivedCount})
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Published Programs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPrograms.map((prog) => {
-          const reqs = prog.requirements || [
-            'Open to pre-final and final year B.Tech students',
-            'Minimum 70% in baseline technical assessment',
-            'Hands-on project submission required for certificate'
-          ];
-          const isClosed = prog.isClosed || prog.status === 'Closed' || prog.status === 'Archived';
-          const isArchived = prog.status === 'Archived';
-
-          return (
-            <div
-              key={prog.id}
-              className={`bg-white rounded-3xl border p-6 shadow-xs space-y-4 hover:shadow-md transition-all flex flex-col justify-between ${
-                isArchived
-                  ? 'border-slate-300 opacity-75 bg-slate-50/50'
-                  : isClosed
-                  ? 'border-amber-300 bg-amber-50/20'
-                  : 'border-slate-200 hover:border-purple-400'
-              }`}
-            >
-              <div>
-                {/* Badges */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider">
-                    {prog.category}
-                  </span>
-                  {isArchived ? (
-                    <span className="text-[11px] font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300 flex items-center gap-1">
-                      📁 Total Closed / Archived
-                    </span>
-                  ) : isClosed ? (
-                    <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 text-amber-600" />
-                      Bookings Closed
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      Live &amp; Accepting
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-start gap-3 mb-2">
-                  <img
-                    src={prog.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80'}
-                    alt=""
-                    className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0"
-                  />
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
-                      {prog.title}
-                    </h2>
-                    <p className="text-[11px] text-slate-500 font-medium">{prog.provider} • {prog.mode || 'Live Online'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-xs text-slate-500 my-2">
-                  <span className="flex items-center gap-1 font-semibold text-slate-700">
-                    <Clock className="w-3.5 h-3.5 text-purple-600" /> {prog.duration}
-                  </span>
-                  <span>•</span>
-                  <span className="font-semibold text-slate-700">
-                    Level: {prog.level}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mt-2">
-                  {prog.description}
-                </p>
-
-                {/* Key Requirements Highlights */}
-                <div className="mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
-                    Entry Requirements &amp; Eligibility
-                  </span>
-                  <ul className="space-y-1 text-[11px] text-slate-600">
-                    {reqs.slice(0, 2).map((r, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <Check className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
-                        <span className="line-clamp-1">{r}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Skills Chips */}
-                <div className="mt-3 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Competencies Acquired
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {Array.isArray(prog.skillsGained) && prog.skillsGained.slice(0, 4).map((sk, i) => (
-                      <span key={i} className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md font-semibold">
-                        {sk}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+          {/* Search & Stage Filters */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search applicants by Name, Student ID (#84920...), Department, or Skills..."
+                  value={applicantSearchQuery}
+                  onChange={(e) => setApplicantSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-purple-500 focus:bg-white"
+                />
               </div>
 
-              {/* Card Footer with Publisher Closure Controls */}
-              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs mt-4">
-                <div>
-                  <span className="font-bold text-slate-900 block">{prog.enrolledCount || 0} Students</span>
-                  <span className="text-[10px] text-slate-400">Seats: {prog.maxSeats || 100}</span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
-                  <button
-                    onClick={() => setSelectedProgram(prog)}
-                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-[11px] transition-colors cursor-pointer"
-                  >
-                    Requirements
-                  </button>
-
-                  {isClosed ? (
+              {/* Stage Filter Buttons */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {['All', 'Applied', 'Screening', 'Shortlisted', 'Interview', 'Selected'].map((stage) => {
+                  const count = stage === 'All'
+                    ? programApplicants.length
+                    : programApplicants.filter((a) => a.currentStage === stage).length;
+                  return (
                     <button
-                      disabled={statusActionLoadingId === prog.id}
-                      onClick={() => handleToggleProgramStatus(prog, 'Live & Accepting')}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                      key={stage}
+                      onClick={() => setApplicantStageFilter(stage)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                        applicantStageFilter === stage
+                          ? 'bg-purple-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                      }`}
                     >
-                      <CheckCircle2 className="w-3 h-3" />
-                      Reopen Bookings
+                      {stage} ({count})
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        disabled={statusActionLoadingId === prog.id}
-                        onClick={() => handleToggleProgramStatus(prog, 'Closed', 'Cohort bookings reached capacity.')}
-                        className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
-                        title="Stop new student enrollments while keeping course visible"
-                      >
-                        Close Bookings
-                      </button>
-                      <button
-                        disabled={statusActionLoadingId === prog.id}
-                        onClick={() => handleToggleProgramStatus(prog, 'Archived', 'Program completed and archived.')}
-                        className="px-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer"
-                        title="Archive and close program completely"
-                      >
-                        Total Close
-                      </button>
-                    </>
-                  )}
-                </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+
+          {/* Applicants Grid */}
+          {loadingApplicants ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
+              <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs font-bold text-slate-700">Loading Program Applicants...</p>
+            </div>
+          ) : filteredProgramApplicants.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
+              <Users className="w-12 h-12 text-slate-300 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-800">No applicants match the current filter</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {applicantSearchQuery || applicantStageFilter !== 'All'
+                  ? 'Try clearing your search query or choosing another stage filter.'
+                  : 'New campus applicants for this training program will appear here as students enroll.'}
+              </p>
+              {(applicantSearchQuery || applicantStageFilter !== 'All') && (
+                <button
+                  onClick={() => {
+                    setApplicantSearchQuery('');
+                    setApplicantStageFilter('All');
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredProgramApplicants.map((app) => {
+                const candId = app.candidateId || app.userId || 'cand-01';
+                const studentIdDisplay = app.studentId || `#84920${String(candId).replace(/\D/g, '').padStart(5, '0')}`;
+
+                return (
+                  <div
+                    key={app.id}
+                    className="bg-white rounded-2xl border border-slate-200 hover:border-purple-300 p-5 shadow-xs space-y-4 transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Top Info Header */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={app.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                            alt=""
+                            className="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                          />
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-sm font-black text-slate-900">{app.studentName}</h4>
+                              {app.isVerified && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
+                                </span>
+                              )}
+                            </div>
+                            <div className="inline-block px-1.5 py-0.5 bg-slate-100 text-slate-800 font-mono text-[11px] font-bold rounded my-0.5">
+                              Student ID: {studentIdDisplay}
+                            </div>
+                            <p className="text-xs text-slate-600 font-medium">
+                              {app.degree || 'B.Tech'} • {app.department || 'Computer Science'}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {app.college || 'Apex Institute of Technology'} • Batch of {app.graduationYear || '2026'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Benchmark Match Score */}
+                        <div className="text-right flex-shrink-0">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Role Match</span>
+                          <span className="text-base font-black text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl border border-purple-100 inline-block">
+                            {app.matchScore || app.skillScore || 88}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mini Academic Metrics */}
+                      <div className="grid grid-cols-2 gap-2 my-2.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">CGPA</span>
+                          <span className="font-bold text-slate-800">{app.cgpa ? `${app.cgpa} / 10.0` : '8.8 / 10.0'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 block uppercase">Applied On</span>
+                          <span className="font-bold text-slate-800">{app.appliedDate || '12 Nov 2026'}</span>
+                        </div>
+                      </div>
+
+                      {/* Verified Skill Badges */}
+                      {Array.isArray(app.topSkills) && app.topSkills.length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Top Verified Skills</span>
+                          <div className="flex flex-wrap gap-1">
+                            {app.topSkills.slice(0, 4).map((sk: string, i: number) => (
+                              <span key={i} className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md text-[10px] font-bold border border-purple-100">
+                                {sk}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stage Dropdown & View Profile & Portfolio Button */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Stage:</span>
+                        <div className="relative">
+                          <select
+                            value={app.currentStage || 'Applied'}
+                            onChange={(e) => handleUpdateApplicantStage(app.id, e.target.value)}
+                            className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 py-1 pl-2.5 pr-6 rounded-lg border border-slate-200 focus:outline-none cursor-pointer appearance-none"
+                          >
+                            <option value="Applied">Applied</option>
+                            <option value="Screening">Screening</option>
+                            <option value="Shortlisted">Shortlisted</option>
+                            <option value="Interview">Interview</option>
+                            <option value="Selected">Selected</option>
+                            <option value="Rejected">Rejected</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-slate-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setInspectedCandidate(app)}
+                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        View Student Profile &amp; Portfolio
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Filters & Search Bar */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search programs by title, skills (React, Docker, AI), or curriculum..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 placeholder-slate-400 rounded-xl border border-slate-200 focus:border-purple-500 focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Category Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto text-xs font-semibold">
+                {['All', 'Bootcamp', 'Workshop', 'Certification', 'Industry Training'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategoryTab(cat)}
+                    className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap cursor-pointer ${
+                      selectedCategoryTab === cat
+                        ? 'bg-purple-600 text-white font-bold shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status Filters: All, Live & Accepting, Bookings Closed, Total Closed */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs font-bold">
+              <span className="text-slate-400 text-[11px] uppercase tracking-wider mr-1">Booking Status:</span>
+              <button
+                onClick={() => setSelectedStatusTab('All')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
+                  selectedStatusTab === 'All'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                All ({learningPrograms.length})
+              </button>
+              <button
+                onClick={() => setSelectedStatusTab('Live')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedStatusTab === 'Live'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Live &amp; Accepting ({liveCount})
+              </button>
+              <button
+                onClick={() => setSelectedStatusTab('Closed')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedStatusTab === 'Closed'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                Bookings Closed ({closedCount})
+              </button>
+              <button
+                onClick={() => setSelectedStatusTab('Archived')}
+                className={`px-3 py-1 rounded-xl transition-all cursor-pointer ${
+                  selectedStatusTab === 'Archived'
+                    ? 'bg-slate-700 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                Total Closed / Archived ({archivedCount})
+              </button>
+            </div>
+          </div>
+
+          {/* Published Programs Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPrograms.map((prog) => {
+              const reqs = prog.requirements || [
+                'Open to pre-final and final year B.Tech students',
+                'Minimum 70% in baseline technical assessment',
+                'Hands-on project submission required for certificate'
+              ];
+              const isClosed = prog.isClosed || prog.status === 'Closed' || prog.status === 'Archived';
+              const isArchived = prog.status === 'Archived';
+
+              return (
+                <div
+                  key={prog.id}
+                  className={`bg-white rounded-3xl border p-6 shadow-xs space-y-4 hover:shadow-md transition-all flex flex-col justify-between ${
+                    isArchived
+                      ? 'border-slate-300 opacity-75 bg-slate-50/50'
+                      : isClosed
+                      ? 'border-amber-300 bg-amber-50/20'
+                      : 'border-slate-200 hover:border-purple-400'
+                  }`}
+                >
+                  <div>
+                    {/* Badges */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 uppercase tracking-wider">
+                        {prog.category}
+                      </span>
+                      {isArchived ? (
+                        <span className="text-[11px] font-bold text-slate-700 bg-slate-200 px-2 py-0.5 rounded-md border border-slate-300 flex items-center gap-1">
+                          📁 Total Closed / Archived
+                        </span>
+                      ) : isClosed ? (
+                        <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 text-amber-600" />
+                          Bookings Closed
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          Live &amp; Accepting
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-start gap-3 mb-2">
+                      <img
+                        src={prog.logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80'}
+                        alt=""
+                        className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+                      />
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
+                          {prog.title}
+                        </h2>
+                        <p className="text-[11px] text-slate-500 font-medium">{prog.provider} • {prog.mode || 'Live Online'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-slate-500 my-2">
+                      <span className="flex items-center gap-1 font-semibold text-slate-700">
+                        <Clock className="w-3.5 h-3.5 text-purple-600" /> {prog.duration}
+                      </span>
+                      <span>•</span>
+                      <span className="font-semibold text-slate-700">
+                        Level: {prog.level}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mt-2">
+                      {prog.description}
+                    </p>
+
+                    {/* Key Requirements Highlights */}
+                    <div className="mt-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-1.5 text-xs">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-purple-600" />
+                        Entry Requirements &amp; Eligibility
+                      </span>
+                      <ul className="space-y-1 text-[11px] text-slate-600">
+                        {reqs.slice(0, 2).map((r, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <Check className="w-3 h-3 text-purple-600 mt-0.5 flex-shrink-0" />
+                            <span className="line-clamp-1">{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Skills Chips */}
+                    <div className="mt-3 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Competencies Acquired
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.isArray(prog.skillsGained) && prog.skillsGained.slice(0, 4).map((sk, i) => (
+                          <span key={i} className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md font-semibold">
+                            {sk}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer with Publisher Closure Controls & View Applicants */}
+                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs mt-4">
+                    <div>
+                      <span className="font-bold text-slate-900 block">{prog.enrolledCount || 0} Students</span>
+                      <span className="text-[10px] text-slate-400">Seats: {prog.maxSeats || 100}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end">
+                      <button
+                        onClick={() => handleViewApplicants(prog)}
+                        className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-xl font-bold text-[11px] transition-colors cursor-pointer border border-purple-200 flex items-center gap-1"
+                      >
+                        <Users className="w-3.5 h-3.5 text-purple-600" />
+                        View Applicants ({prog.enrolledCount || 18})
+                      </button>
+
+                      <button
+                        onClick={() => setSelectedProgram(prog)}
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-[11px] transition-colors cursor-pointer"
+                      >
+                        Requirements
+                      </button>
+
+                      {isClosed ? (
+                        <button
+                          disabled={statusActionLoadingId === prog.id}
+                          onClick={() => handleToggleProgramStatus(prog, 'Live & Accepting')}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          Reopen Bookings
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            disabled={statusActionLoadingId === prog.id}
+                            onClick={() => handleToggleProgramStatus(prog, 'Closed', 'Cohort bookings reached capacity.')}
+                            className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer shadow-2xs"
+                            title="Stop new student enrollments while keeping course visible"
+                          >
+                            Close Bookings
+                          </button>
+                          <button
+                            disabled={statusActionLoadingId === prog.id}
+                            onClick={() => handleToggleProgramStatus(prog, 'Archived', 'Program completed and archived.')}
+                            className="px-2 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-[11px] transition-all cursor-pointer"
+                            title="Archive and close program completely"
+                          >
+                            Total Close
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* 4. PROGRAM REQUIREMENTS INSPECTION MODAL */}
       {selectedProgram && (
@@ -929,6 +1251,20 @@ export const IndustryProgramsView: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 5. CANDIDATE PROFILE & DIGITAL PORTFOLIO MODAL */}
+      {inspectedCandidate && (
+        <CandidateProfileAndPortfolioModal
+          candidateId={inspectedCandidate.candidateId || inspectedCandidate.userId || inspectedCandidate.id}
+          initialCandidate={inspectedCandidate}
+          onClose={() => setInspectedCandidate(null)}
+          onScheduleInterview={(cand) => {
+            alert(`Direct Interview Invitation sent to ${cand?.name || inspectedCandidate.studentName || 'Candidate'}.`);
+            triggerConfetti();
+            setInspectedCandidate(null);
+          }}
+        />
       )}
     </div>
   );

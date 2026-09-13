@@ -178,59 +178,156 @@ export const RecommendedForYouView: React.FC = () => {
         </div>
       </div>
 
-      {/* 1. Recommended Jobs */}
+      {/* 1. Recommended Skills & Competency Bridging */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-blue-600" />
-              Recommended Jobs
+              <Award className="w-4 h-4 text-purple-600" />
+              Recommended Skills &amp; Competencies to Master
             </h2>
-            <p className="text-xs text-blue-600 font-semibold mt-0.5">
-              💡 Recommended because you scored in the 92nd percentile in Python, SQL, and React problem solving.
+            <p className="text-xs text-purple-600 font-semibold mt-0.5">
+              💡 Essential technical competencies and tools prioritized for <strong>{activeRole.title}</strong> hiring benchmarks.
             </p>
           </div>
           <button
-            onClick={() => setActiveTab('jobs')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+            onClick={() => setActiveTab('skill-profile')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
           >
-            Explore all jobs
+            Open Skill Profile
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {recommendedJobs.map((job) => (
-            <OpportunityCard
-              key={job.id}
-              opportunity={job}
-              onViewDetails={(opp) => setSelectedOpportunity(opp)}
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          {(activeRole.keySkills || []).slice(0, 4).map((sk, idx) => (
+            <div
+              key={idx}
+              className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-purple-300 hover:shadow-xs transition-all space-y-2 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-700">
+                    High Priority
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-400">Core Stack</span>
+                </div>
+                <h3 className="text-sm font-black text-slate-900 mt-2">{sk}</h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Required for Tier-1 technical rounds and system design evaluations.
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setActiveTab('skill-profile')}
+                  className="w-full py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Zap className="w-3 h-3 text-purple-600" />
+                  Take Assessment
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* 2. Recommended Internships */}
+      {/* 2. Recommended Online Courses & Certifications */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-indigo-600" />
+              Recommended Online Courses &amp; Certifications
+            </h2>
+            <p className="text-xs text-indigo-600 font-semibold mt-0.5">
+              💡 Industry-accredited tracks tailored to bridge skill gaps and boost ATS resume visibility.
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab('online-courses')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
+          >
+            Explore all courses
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {recommendedCourses.map((prog) => (
+            <div
+              key={prog.id}
+              className="p-5 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+            >
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
+                        {prog.provider}
+                      </span>
+                      <h3 className="text-sm font-black text-slate-900 leading-snug">
+                        {prog.title}
+                      </h3>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex-shrink-0">
+                    Accredited
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  {prog.description}
+                </p>
+
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {((prog as any).skillsCovered || prog.skillsGained || []).slice(0, 3).map((sk: string, i: number) => (
+                    <span key={i} className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium">
+                      {sk}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 text-[11px] font-medium">
+                  {prog.duration} &bull; {prog.level}
+                </span>
+                <button
+                  onClick={() => setActiveTab('online-courses')}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                >
+                  View Course <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Recommended Internships */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
           <div>
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-emerald-600" />
-              Recommended Internships
+              Recommended Internships &amp; Practicums
             </h2>
             <p className="text-xs text-emerald-600 font-semibold mt-0.5">
-              💡 Recommended because your Capstone project demonstrates production FastAPI & Vector RAG capabilities.
+              💡 Internships offering Pre-Placement Offers (PPO) matching your technical stack.
             </p>
           </div>
           <button
-            onClick={() => setActiveTab('internships')}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+            onClick={() => setActiveTab('jobs-internships')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
           >
             Explore all internships
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {recommendedInternships.map((intern) => (
+          {recommendedInternships.slice(0, 2).map((intern) => (
             <OpportunityCard
               key={intern.id}
               opportunity={intern}
@@ -240,7 +337,38 @@ export const RecommendedForYouView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Recommended Companies */}
+      {/* 4. Recommended Jobs */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-blue-600" />
+              Recommended Job Opportunities &amp; Campus Drives
+            </h2>
+            <p className="text-xs text-blue-600 font-semibold mt-0.5">
+              💡 Recommended full-time placement opportunities matching your readiness score.
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab('jobs-internships')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer"
+          >
+            Explore all jobs
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {recommendedJobs.slice(0, 2).map((job) => (
+            <OpportunityCard
+              key={job.id}
+              opportunity={job}
+              onViewDetails={(opp) => setSelectedOpportunity(opp)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 5. Recommended Companies */}
       <div className="space-y-4">
         <div className="border-b border-slate-200 pb-2">
           <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -268,8 +396,8 @@ export const RecommendedForYouView: React.FC = () => {
               <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-xs font-bold text-blue-600">{comp.openingsCount} active campus roles</span>
                 <button
-                  onClick={() => setActiveTab('jobs')}
-                  className="text-xs font-bold text-slate-700 hover:text-blue-600 flex items-center gap-1"
+                  onClick={() => setActiveTab('jobs-internships')}
+                  className="text-xs font-bold text-slate-700 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
                 >
                   View Roles <ArrowRight className="w-3.5 h-3.5" />
                 </button>

@@ -87,7 +87,12 @@ opportunitiesRouter.get('/', optionalAuth, (req: any, res) => {
         status: r.status || (r.is_closed ? 'Closed' : 'Active'),
         isClosed: Boolean(r.is_closed || r.status === 'Closed' || r.status === 'Archived'),
         closedReason: r.closed_reason || null,
-        closedAt: r.closed_at || null
+        closedAt: r.closed_at || null,
+        minSkillScore: Number(r.min_skill_score !== undefined && r.min_skill_score !== null ? r.min_skill_score : 70),
+        minCgpa: Number(r.min_cgpa !== undefined && r.min_cgpa !== null ? r.min_cgpa : 7.0),
+        minMatchPercentage: Number(r.min_match_percentage !== undefined && r.min_match_percentage !== null ? r.min_match_percentage : 60),
+        minVerifiedCertificatesCount: Number(r.min_verified_certs !== undefined && r.min_verified_certs !== null ? r.min_verified_certs : 0),
+        benchmarkNotes: r.benchmark_notes || null
       };
     });
 
@@ -141,7 +146,12 @@ opportunitiesRouter.get('/:id', optionalAuth, (req: any, res) => {
         status: r.status || (r.is_closed ? 'Closed' : 'Active'),
         isClosed: Boolean(r.is_closed || r.status === 'Closed' || r.status === 'Archived'),
         closedReason: r.closed_reason || null,
-        closedAt: r.closed_at || null
+        closedAt: r.closed_at || null,
+        minSkillScore: Number(r.min_skill_score !== undefined && r.min_skill_score !== null ? r.min_skill_score : 70),
+        minCgpa: Number(r.min_cgpa !== undefined && r.min_cgpa !== null ? r.min_cgpa : 7.0),
+        minMatchPercentage: Number(r.min_match_percentage !== undefined && r.min_match_percentage !== null ? r.min_match_percentage : 60),
+        minVerifiedCertificatesCount: Number(r.min_verified_certs !== undefined && r.min_verified_certs !== null ? r.min_verified_certs : 0),
+        benchmarkNotes: r.benchmark_notes || null
       }
     });
   } catch (err: any) {
@@ -168,7 +178,17 @@ opportunitiesRouter.post('/', optionalAuth, (req: any, res) => {
       description,
       responsibilities,
       eligibility,
-      companyDetails
+      careerRoleIds,
+      targetRoles,
+      eligibleBranches,
+      status,
+      companyDetails,
+      minSkillScore,
+      minCgpa,
+      minMatchPercentage,
+      minVerifiedCertificatesCount,
+      benchmarkNotes,
+      postedDate
     } = req.body;
 
     if (!title || !type) {
@@ -179,13 +199,43 @@ opportunitiesRouter.post('/', optionalAuth, (req: any, res) => {
     const userId = req.user?.id || 'usr-industry-1';
     const org = organization || req.user?.organization || 'TechNova Solutions';
     const postLogo = logo || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80';
+    const resolvedPostedDate = postedDate || new Date().toISOString().split('T')[0];
+
+    const defaultCareerRoleIds = Array.isArray(careerRoleIds) && careerRoleIds.length > 0
+      ? careerRoleIds
+      : ['fullstack-engineer', 'frontend-engineer', 'backend-engineer', 'cloud-devops-engineer', 'data-scientist'];
+
+    const defaultTargetRoles = Array.isArray(targetRoles) && targetRoles.length > 0
+      ? targetRoles
+      : [title, 'Software Development Engineer', 'Full-Stack Developer'];
+
+    const defaultEligibleBranches = Array.isArray(eligibleBranches) && eligibleBranches.length > 0
+      ? eligibleBranches
+      : ['All B.Tech Branches', 'Computer Science & Engineering', 'Information Technology', 'Artificial Intelligence & Data Science', 'Electronics & Communication Engineering'];
+
+    const reqSkillsArray = Array.isArray(requiredSkills) ? requiredSkills : (requiredSkills ? requiredSkills.split(',').map((s: string) => s.trim()) : ['React', 'TypeScript']);
+    const prefSkillsArray = Array.isArray(preferredSkills) ? preferredSkills : (preferredSkills ? preferredSkills.split(',').map((s: string) => s.trim()) : []);
+    const respArray = Array.isArray(responsibilities) ? responsibilities : [
+      'Design and implement high-performance web components and APIs',
+      'Collaborate with agile cross-functional teams',
+      'Participate in design and code review cycles'
+    ];
+    const matchPct = Math.floor(Math.random() * 15) + 85;
+
+    const numMinSkillScore = minSkillScore !== undefined ? Number(minSkillScore) : 70;
+    const numMinCgpa = minCgpa !== undefined ? Number(minCgpa) : 7.0;
+    const numMinMatchPct = minMatchPercentage !== undefined ? Number(minMatchPercentage) : 60;
+    const numMinVerifiedCerts = minVerifiedCertificatesCount !== undefined ? Number(minVerifiedCertificatesCount) : 0;
+    const resolvedBenchmarkNotes = benchmarkNotes || `Benchmark: Skill Score ≥ ${numMinSkillScore}%, CGPA ≥ ${numMinCgpa}, Match ≥ ${numMinMatchPct}%${numMinVerifiedCerts > 0 ? `, ${numMinVerifiedCerts}+ Verified Certs` : ''}.`;
 
     const insert = db.prepare(`
       INSERT INTO opportunities (
         id, type, title, organization, logo, location, work_mode, required_skills,
         preferred_skills, salary_or_stipend, experience, duration, deadline, match_percentage,
-        description, responsibilities, eligibility, applicants_count, posted_date, company_details, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        description, responsibilities, eligibility, applicants_count, posted_date, company_details, created_by,
+        career_role_ids, target_roles, eligible_branches, status,
+        min_skill_score, min_cgpa, min_match_percentage, min_verified_certs, benchmark_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     insert.run(
@@ -196,30 +246,72 @@ opportunitiesRouter.post('/', optionalAuth, (req: any, res) => {
       postLogo,
       location || 'Bangalore / Hybrid',
       workMode || 'Hybrid',
-      JSON.stringify(Array.isArray(requiredSkills) ? requiredSkills : (requiredSkills ? requiredSkills.split(',').map((s: string) => s.trim()) : ['React', 'TypeScript'])),
-      JSON.stringify(Array.isArray(preferredSkills) ? preferredSkills : (preferredSkills ? preferredSkills.split(',').map((s: string) => s.trim()) : [])),
+      JSON.stringify(reqSkillsArray),
+      JSON.stringify(prefSkillsArray),
       salaryOrStipend || (type === 'internship' ? '₹30,000 / month' : '₹12,00,000 - ₹16,00,000 / annum'),
       experience || (type === 'job' ? 'Fresher to 1 Year' : null),
       duration || (type === 'internship' ? '6 Months' : null),
       deadline || '2026-11-30',
-      Math.floor(Math.random() * 15) + 85, // 85-99% match
+      matchPct,
       description || 'Exciting opportunity to build real-world software and collaborate across high-impact product teams.',
-      JSON.stringify(Array.isArray(responsibilities) ? responsibilities : [
-        'Develop core features, APIs, and microservices.',
-        'Collaborate with agile cross-functional teams.',
-        'Participate in design and code review cycles.'
-      ]),
-      eligibility || 'Graduating 2026/2027 in engineering or relevant discipline.',
+      JSON.stringify(respArray),
+      eligibility || 'Graduating 2026/2027 in engineering or relevant discipline. Open to All B.Tech Branches.',
       0,
-      'Just now',
+      resolvedPostedDate,
       JSON.stringify(companyDetails || { size: '1,000+ employees', industry: 'Software & Technology', rating: 4.7 }),
-      userId
+      userId,
+      JSON.stringify(defaultCareerRoleIds),
+      JSON.stringify(defaultTargetRoles),
+      JSON.stringify(defaultEligibleBranches),
+      status || 'Active',
+      numMinSkillScore,
+      numMinCgpa,
+      numMinMatchPct,
+      numMinVerifiedCerts,
+      resolvedBenchmarkNotes
     );
+
+    const createdOpportunity = {
+      id,
+      type,
+      title,
+      organization: org,
+      logo: postLogo,
+      location: location || 'Bangalore / Hybrid',
+      workMode: workMode || 'Hybrid',
+      requiredSkills: reqSkillsArray,
+      preferredSkills: prefSkillsArray,
+      salaryOrStipend: salaryOrStipend || (type === 'internship' ? '₹30,000 / month' : '₹12,00,000 - ₹16,00,000 / annum'),
+      experience: experience || (type === 'job' ? 'Fresher to 1 Year' : null),
+      duration: duration || (type === 'internship' ? '6 Months' : null),
+      deadline: deadline || '2026-11-30',
+      matchPercentage: matchPct,
+      description: description || 'Exciting opportunity to build real-world software and collaborate across high-impact product teams.',
+      responsibilities: respArray,
+      eligibility: eligibility || 'Graduating 2026/2027 in engineering or relevant discipline. Open to All B.Tech Branches.',
+      applicantsCount: 0,
+      postedDate: resolvedPostedDate,
+      isSaved: false,
+      appliedStatus: null,
+      careerRoleIds: defaultCareerRoleIds,
+      targetRoles: defaultTargetRoles,
+      eligibleBranches: defaultEligibleBranches,
+      companyDetails: companyDetails || { size: '1,000+ employees', industry: 'Software & Technology', rating: 4.7 },
+      createdBy: userId,
+      status: status || 'Active',
+      isClosed: false,
+      minSkillScore: numMinSkillScore,
+      minCgpa: numMinCgpa,
+      minMatchPercentage: numMinMatchPct,
+      minVerifiedCertificatesCount: numMinVerifiedCerts,
+      benchmarkNotes: resolvedBenchmarkNotes
+    };
 
     return res.status(201).json({
       success: true,
       message: `${type === 'internship' ? 'Internship' : 'Job'} posted successfully!`,
-      id
+      id,
+      opportunity: createdOpportunity
     });
   } catch (err: any) {
     console.error('Error creating opportunity:', err);

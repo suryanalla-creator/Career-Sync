@@ -27,6 +27,7 @@ import { Candidate } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 import { DEPARTMENT_OPTIONS } from '../../data/departmentOptions';
+import { CandidateProfileAndPortfolioModal } from './CandidateProfileAndPortfolioModal';
 
 const POPULAR_SKILLS = [
   'React',
@@ -51,6 +52,8 @@ export const CandidateSearchView: React.FC = () => {
     setActiveTab
   } = useApp();
 
+  const [candidateFilter, setCandidateFilter] = useState<'all' | 'applicants' | 'shortlisted'>('all');
+  const [applicantsCount, setApplicantsCount] = useState<number>(0);
   const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
@@ -78,6 +81,7 @@ export const CandidateSearchView: React.FC = () => {
 
   // Reset all filters
   const handleResetFilters = () => {
+    setCandidateFilter('all');
     setSearchQuery('');
     setSelectedDept('All');
     setSelectedDegree('All');
@@ -92,6 +96,7 @@ export const CandidateSearchView: React.FC = () => {
 
   // Active filter count
   const activeFilterCount = [
+    candidateFilter !== 'all',
     searchQuery.trim() !== '',
     selectedDept !== 'All',
     selectedDegree !== 'All',
@@ -116,11 +121,18 @@ export const CandidateSearchView: React.FC = () => {
         minScore: minScore > 0 ? minScore : undefined,
         isVerified: verifiedOnly ? true : undefined,
         status: selectedStatus !== 'All' ? selectedStatus : undefined,
+        onlyApplicants: candidateFilter === 'applicants' ? true : undefined,
         sortBy: sortBy === 'match' ? 'match_score' : sortBy === 'skillScore' ? 'skill_score' : sortBy,
         sortOrder
       }).then(res => {
         if (res && res.candidates) {
           setCandidates(res.candidates);
+          if (typeof res.totalApplicantsCount === 'number') {
+            setApplicantsCount(res.totalApplicantsCount);
+          } else {
+            const count = res.candidates.filter((c: Candidate) => c.hasApplied).length;
+            setApplicantsCount(count);
+          }
         }
       }).catch(err => {
         console.warn('Backend database search error, using client cache:', err);
@@ -131,6 +143,7 @@ export const CandidateSearchView: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [
+    candidateFilter,
     searchQuery,
     selectedDept,
     selectedDegree,
@@ -145,6 +158,8 @@ export const CandidateSearchView: React.FC = () => {
 
   // Client-side refining for skill multi-tags & fuzzy search
   const filteredCandidates = candidates.filter((cand) => {
+    if (candidateFilter === 'applicants' && !cand.hasApplied) return false;
+    if (candidateFilter === 'shortlisted' && !shortlistedCandidates.includes(cand.id)) return false;
     if (minScore > 0 && cand.skillScore < minScore) return false;
     if (minCgpa !== 'All' && cand.cgpa < Number(minCgpa)) return false;
     if (selectedDept !== 'All' && !cand.department?.toLowerCase().includes(selectedDept.toLowerCase())) return false;
@@ -218,6 +233,59 @@ export const CandidateSearchView: React.FC = () => {
             )}
           </button>
         </div>
+      </div>
+
+      {/* Talent Pool / Job Applicants Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setCandidateFilter('all')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            candidateFilter === 'all'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>All Talent Pool</span>
+        </button>
+
+        <button
+          onClick={() => setCandidateFilter('applicants')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            candidateFilter === 'applicants'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Briefcase className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Job Applicants</span>
+          {applicantsCount > 0 && (
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              candidateFilter === 'applicants' ? 'bg-white text-emerald-700' : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {applicantsCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setCandidateFilter('shortlisted')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            candidateFilter === 'shortlisted'
+              ? 'bg-purple-700 text-white shadow-xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Bookmark className="w-3.5 h-3.5" />
+          <span>Shortlisted</span>
+          {shortlistedCandidates.length > 0 && (
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              candidateFilter === 'shortlisted' ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-800'
+            }`}>
+              {shortlistedCandidates.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* 2. Comprehensive Search & Multi-tier Filter Panel */}
@@ -496,6 +564,18 @@ export const CandidateSearchView: React.FC = () => {
                 className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs hover:border-purple-400 hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div>
+                  {cand.hasApplied && (
+                    <div className="mb-3.5 px-3 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs shadow-2xs">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-900 truncate mr-2">
+                        <Briefcase className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                        <span className="truncate">Applied: {cand.appliedJobTitle || 'Job Opening'}</span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-emerald-600 text-white font-black rounded-lg text-[10px] uppercase flex-shrink-0 tracking-wide">
+                        {cand.appliedStage || 'Applied'}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="flex items-center gap-3">
                       <img src={cand.avatar} alt="" className="w-14 h-14 rounded-2xl object-cover border border-slate-200 flex-shrink-0" />
@@ -591,139 +671,18 @@ export const CandidateSearchView: React.FC = () => {
         </div>
       )}
 
-      {/* 4. CANDIDATE PROFILE INSPECTION MODAL */}
+      {/* 4. CANDIDATE PROFILE & DIGITAL PORTFOLIO MODAL */}
       {inspectedCandidate && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 text-xs max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-              <div className="flex items-start gap-4">
-                <img
-                  src={inspectedCandidate.avatar}
-                  alt=""
-                  className="w-16 h-16 rounded-2xl object-cover border border-slate-200 flex-shrink-0"
-                />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-slate-900">{inspectedCandidate.name}</h2>
-                    {inspectedCandidate.isVerified && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Student
-                      </span>
-                    )}
-                  </div>
-                  <div className="inline-block px-2 py-0.5 bg-slate-100 text-slate-800 font-mono text-xs font-bold rounded my-1">
-                    Student ID: {inspectedCandidate.studentId || `#84920${String(inspectedCandidate.id).replace(/\D/g, '').padStart(5, '0')}`}
-                  </div>
-                  <p className="text-slate-600 font-medium">
-                    {inspectedCandidate.degree} in {inspectedCandidate.department}
-                  </p>
-                  <p className="text-slate-400 text-[11px]">
-                    {inspectedCandidate.college} • Batch of {inspectedCandidate.graduationYear}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setInspectedCandidate(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Academic & Assessment Badges */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Academic CGPA</span>
-                <span className="text-lg font-black text-slate-900">{inspectedCandidate.cgpa} / 10.0</span>
-              </div>
-              <div className="p-3 bg-purple-50/70 rounded-2xl border border-purple-100 text-center">
-                <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider block">Skill Assessment</span>
-                <span className="text-lg font-black text-purple-900">{inspectedCandidate.skillScore}%</span>
-              </div>
-              <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-100 text-center">
-                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Role Match</span>
-                <span className="text-lg font-black text-emerald-900">{inspectedCandidate.matchScore || inspectedCandidate.skillScore}%</span>
-              </div>
-            </div>
-
-            {/* Verified Skills Breakdown */}
-            <div className="space-y-2">
-              <h3 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-purple-600" />
-                Verified Technical Skills &amp; Competencies
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {(inspectedCandidate.topSkills || []).map((sk, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 bg-purple-50 text-purple-800 rounded-xl font-bold text-xs border border-purple-100"
-                  >
-                    ✓ {sk}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Internship Experience */}
-            <div className="space-y-2">
-              <h3 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                <Briefcase className="w-4 h-4 text-blue-600" />
-                Practical Experience &amp; Internships
-              </h3>
-              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
-                <p className="font-bold text-slate-800 text-xs">{inspectedCandidate.internshipExperience || 'Academic Capstone & Lab Projects'}</p>
-                <p className="text-slate-500 text-[11px]">
-                  Demonstrated hands-on execution in software development lifecycle, unit testing, and agile team sprints.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-              <button
-                onClick={() => toggleShortlistCandidate(inspectedCandidate.id)}
-                className={`px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  Array.isArray(shortlistedCandidates) && (shortlistedCandidates as string[]).includes(inspectedCandidate.id)
-                    ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                    : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                <Bookmark className="w-4 h-4" />
-                {Array.isArray(shortlistedCandidates) && (shortlistedCandidates as string[]).includes(inspectedCandidate.id)
-                  ? 'Shortlisted'
-                  : 'Add to Shortlist'}
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setActiveTab('messages');
-                    alert(`Opening direct recruiter communication channel with ${inspectedCandidate.name}.`);
-                    setInspectedCandidate(null);
-                  }}
-                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Mail className="w-4 h-4" />
-                  Direct Message
-                </button>
-
-                <button
-                  onClick={() => {
-                    alert(`Formal Interview Invitation scheduled for ${inspectedCandidate.name}. Candidate will receive email and dashboard alerts.`);
-                    triggerConfetti();
-                    setInspectedCandidate(null);
-                  }}
-                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold shadow-md shadow-purple-900/20 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Schedule Interview
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CandidateProfileAndPortfolioModal
+          candidateId={inspectedCandidate.id}
+          initialCandidate={inspectedCandidate}
+          onClose={() => setInspectedCandidate(null)}
+          onScheduleInterview={(cand) => {
+            alert(`Formal Interview Invitation scheduled for ${cand?.name || inspectedCandidate.name}. Candidate will receive email and dashboard alerts.`);
+            triggerConfetti();
+            setInspectedCandidate(null);
+          }}
+        />
       )}
     </div>
   );

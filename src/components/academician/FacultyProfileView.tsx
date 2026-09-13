@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { User, Mail, Phone, Building, Award } from 'lucide-react';
+import { InstitutionCoursesView } from '../institution/InstitutionCoursesView';
 
 export const FacultyProfileView: React.FC = () => {
   const { academicianProfile } = useApp();
@@ -57,6 +58,12 @@ export const FacultyProfileView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Online & Offline Mentee Courses Management Block */}
+      <div className="pt-2">
+        <InstitutionCoursesView />
+      </div>
     </div>
   );
 };
+

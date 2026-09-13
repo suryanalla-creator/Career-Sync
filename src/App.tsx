@@ -53,6 +53,8 @@ import { MyStudentsProgressView } from './components/institution/MyStudentsProgr
 import { SkillGapAnalyticsView } from './components/institution/SkillGapAnalyticsView';
 import { PlacementManagementView } from './components/institution/PlacementManagementView';
 import { IndustryCollaborationHubView } from './components/institution/IndustryCollaborationHubView';
+import { InstitutionCoursesView } from './components/institution/InstitutionCoursesView';
+import { FacultyProfileView } from './components/academician/FacultyProfileView';
 
 const MainContent: React.FC = () => {
   const { role, pageView, activeTab, selectedOpportunity, setSelectedOpportunity } = useApp();
@@ -142,6 +144,10 @@ const MainContent: React.FC = () => {
       case 'institution':
         switch (activeTab) {
           case 'dashboard': return <InstitutionDashboard />;
+          case 'profile': return <FacultyProfileView />;
+          case 'institution-courses':
+          case 'courses':
+          case 'online-courses': return <InstitutionCoursesView />;
           case 'my-students': return <MyStudentsProgressView />;
           case 'students-mgmt': return <StudentManagementView />;
           case 'skill-gaps': return <SkillGapAnalyticsView />;

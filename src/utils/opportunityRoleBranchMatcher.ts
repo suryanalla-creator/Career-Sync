@@ -111,6 +111,9 @@ export function checkOpportunityRoleAndBranchMatch(
   if (opp.careerRoleIds && opp.careerRoleIds.includes(targetRoleId)) {
     isCareerRoleMatch = true;
     roleMatchBadgeText = `${activeRole.title} Track`;
+  } else if (opp.careerRoleIds && (opp.careerRoleIds.includes('all-roles') || opp.careerRoleIds.includes('all'))) {
+    isCareerRoleMatch = true;
+    roleMatchBadgeText = `${activeRole.title} Match`;
   } else if (opp.targetRoles && opp.targetRoles.some(tr => tr.toLowerCase().includes(activeRole.title.toLowerCase()) || activeRole.title.toLowerCase().includes(tr.toLowerCase()))) {
     isCareerRoleMatch = true;
     roleMatchBadgeText = `${activeRole.title} Track`;
@@ -118,15 +121,15 @@ export function checkOpportunityRoleAndBranchMatch(
     // Check title keywords or role skills overlap
     const titleLower = opp.title.toLowerCase();
     const roleTitleWords = activeRole.title.toLowerCase().split(' ').filter(w => w.length > 3 && !['engineer', 'developer', 'specialist'].includes(w));
-    const titleMatch = roleTitleWords.some(w => titleLower.includes(w));
+    const titleMatch = roleTitleWords.some(w => titleLower.includes(w)) || titleLower.includes('software') || titleLower.includes('developer') || titleLower.includes('engineer') || titleLower.includes('analyst');
 
-    // Check key skills overlap (at least 2 key skills or 40% overlap)
-    const requiredLower = opp.requiredSkills.map(s => s.toLowerCase());
+    // Check key skills overlap (at least 1 key skill or overlap)
+    const requiredLower = (opp.requiredSkills || []).map(s => s.toLowerCase());
     const roleSkillsOverlap = activeRole.keySkills.filter(ks =>
       requiredLower.some(req => req.includes(ks.toLowerCase()) || ks.toLowerCase().includes(req))
     );
 
-    if (titleMatch || roleSkillsOverlap.length >= 2) {
+    if (titleMatch || roleSkillsOverlap.length >= 1) {
       isCareerRoleMatch = true;
       roleMatchBadgeText = `${activeRole.title} Match`;
     }
@@ -139,11 +142,15 @@ export function checkOpportunityRoleAndBranchMatch(
   const targetBranch = studentBranch || 'Computer Science & Engineering';
 
   if (opp.eligibleBranches && opp.eligibleBranches.length > 0) {
-    const directBranchMatch = opp.eligibleBranches.some(b => isBranchEquivalent(targetBranch, b));
+    const hasAllBranches = opp.eligibleBranches.some(b => {
+      const lower = b.toLowerCase();
+      return lower.includes('all') || lower.includes('open to all') || lower.includes('any');
+    });
+    const directBranchMatch = hasAllBranches || opp.eligibleBranches.some(b => isBranchEquivalent(targetBranch, b));
     if (directBranchMatch) {
       isBranchEligible = true;
       // Get human short names
-      if (opp.eligibleBranches.includes('All') || opp.eligibleBranches.includes('All B.Tech Branches')) {
+      if (hasAllBranches || opp.eligibleBranches.includes('All') || opp.eligibleBranches.includes('All B.Tech Branches')) {
         branchEligibilityBadgeText = 'All B.Tech Branches';
       } else {
         const matchingBranchCodes = opp.eligibleBranches.map(b => {
@@ -156,7 +163,7 @@ export function checkOpportunityRoleAndBranchMatch(
   } else {
     // Check eligibility string text
     const eligLower = (opp.eligibility || '').toLowerCase();
-    if (eligLower.includes('all engineering') || eligLower.includes('all branches') || eligLower.includes('open to all')) {
+    if (eligLower.includes('all engineering') || eligLower.includes('all branches') || eligLower.includes('open to all') || !eligLower.trim()) {
       isBranchEligible = true;
       branchEligibilityBadgeText = 'All B.Tech Branches';
     } else {
@@ -164,6 +171,10 @@ export function checkOpportunityRoleAndBranchMatch(
       if (branchInfo && branchInfo.aliases.some(a => eligLower.includes(a))) {
         isBranchEligible = true;
         branchEligibilityBadgeText = `B.Tech ${branchInfo.shortCode} Eligible`;
+      } else {
+        // Default to true for standard campus opportunities
+        isBranchEligible = true;
+        branchEligibilityBadgeText = 'All B.Tech Branches';
       }
     }
   }

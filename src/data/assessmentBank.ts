@@ -352,46 +352,6 @@ print(c.shape)`,
     ],
     correctOption: 0,
     explanation: 'Effective code reviews are collaborative teaching moments. Pairing on the first review builds psychological safety, accelerates learning, and protects codebase health.'
-  },
-
-  // ==========================================
-  // LEADERSHIP & ETHICS (Scenario-Judgment & Multi)
-  // ==========================================
-  {
-    id: 'lead-1',
-    type: 'scenario-judgment',
-    section: 'Leadership',
-    difficulty: 'Hard',
-    points: 12,
-    title: 'Live Production Incident Conflict',
-    scenarioContext: 'During a P0 production outage impacting 100,000 active users, two senior engineers vehemently disagree in the incident bridge: Engineer A demands rolling back the latest deployment immediately, while Engineer B insists on live-patching a hotfix in 10 minutes.',
-    question: 'As the incident commander or team lead, how do you decisively resolve this deadlock?',
-    options: [
-      'Enforce the primary incident protocol: prioritize restoring service stability first by rolling back to the known-good state, then investigate the root cause and test the hotfix safely in staging.',
-      'Wait in silence until both engineers reach a unanimous philosophical agreement.',
-      'Allow Engineer B to hotfix directly in production without a verified fallback plan to see if it works.',
-      'Shut down all servers for 24 hours until management convenes an inquiry committee.'
-    ],
-    correctOption: 0,
-    explanation: 'In high-severity outages, the primary objective is Time to Mitigation (TTM). Rolling back to the last known-good release reliably restores customer availability while hotfixing on live production introduces compounded risk.'
-  },
-  {
-    id: 'lead-2',
-    type: 'scenario-judgment',
-    section: 'Leadership',
-    difficulty: 'Medium',
-    points: 10,
-    title: 'Unequal Cross-Functional Sprint Workload',
-    scenarioContext: 'Midway through a two-week sprint, you observe that one engineer is overwhelmed with critical path blockers while two other engineers have completed their tasks early and are idle.',
-    question: 'What is the most effective leadership intervention in this agile setting?',
-    options: [
-      'In the next standup, transparently visualize the team sprint board, facilitate a collaborative swarming re-allocation where idle engineers pair with the blocked teammate, and adjust scope if necessary.',
-      'Privately reprimand the overwhelmed engineer for falling behind schedule.',
-      'Tell the idle engineers to leave early since their personal tickets are finished.',
-      'Ignore the bottleneck because individual commitments should never be altered mid-sprint.'
-    ],
-    correctOption: 0,
-    explanation: 'High-performing engineering teams operate on collective ownership ("swarming" around sprint goals) rather than siloed individual ticket throughput.'
   }
 ];
 
@@ -422,12 +382,11 @@ function mulberry32(seed: number) {
  * - Data & AI
  * - Problem Solving
  * - Communication
- * - Leadership
  * Along with mixed question types (single-select, multi-select, code-analysis, fill-blank, scenario-judgment).
  */
 export function generatePersonalizedAssessment(
   studentIdentifier: string,
-  questionCount: number = 7
+  questionCount: number = 6
 ): AssessmentQuestion[] {
   const seed = hashString(studentIdentifier || 'careersync-student-' + Date.now());
   const rand = mulberry32(seed);
@@ -437,8 +396,7 @@ export function generatePersonalizedAssessment(
     'Programming',
     'Data & AI',
     'Problem Solving',
-    'Communication',
-    'Leadership'
+    'Communication'
   ];
 
   const bySection: Record<string, AssessmentQuestion[]> = {};
@@ -497,8 +455,7 @@ export function evaluateAssessment(
     'Programming': { earned: 0, max: 0 },
     'Data & AI': { earned: 0, max: 0 },
     'Problem Solving': { earned: 0, max: 0 },
-    'Communication': { earned: 0, max: 0 },
-    'Leadership': { earned: 0, max: 0 }
+    'Communication': { earned: 0, max: 0 }
   };
 
   const results: EvaluatedQuestionResult[] = questions.map((q, idx) => {

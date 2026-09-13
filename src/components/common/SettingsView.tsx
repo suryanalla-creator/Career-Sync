@@ -26,7 +26,8 @@ import {
   FileText,
   User,
   Award,
-  Users
+  Users,
+  BookOpen
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -45,7 +46,16 @@ const getDefaultEmailForRole = (
   return studentEmail || 'student@careersync.com';
 };
 
-const getSessionsForRole = (role: string) => {
+interface DeviceSession {
+  id: string;
+  device: string;
+  location: string;
+  active: boolean;
+  ip: string;
+  time: string;
+}
+
+const getSessionsForRole = (role: string): DeviceSession[] => {
   if (role === 'industry') {
     return [
       { id: 'ind-s1', device: 'TechNova Workstation (Chrome on Windows 11)', location: 'Hyderabad, India', active: true, ip: '182.74.89.4', time: 'Active now' },
@@ -65,7 +75,7 @@ const getSessionsForRole = (role: string) => {
 };
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ initialSubTab = 'account' }) => {
-  const { role, studentProfile, setStudentProfile, triggerConfetti } = useApp();
+  const { role, studentProfile, setStudentProfile, triggerConfetti, setActiveTab } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<'account' | 'security' | 'notifications' | 'privacy'>(initialSubTab);
 
   // Global Toast Feedback
@@ -789,6 +799,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialSubTab = 'acc
                           <option>Europe/London (GMT - UTC+00:00)</option>
                         </select>
                       </div>
+                    </div>
+
+                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between gap-3 mt-4">
+                      <div>
+                        <h4 className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-amber-700" />
+                          Online &amp; Offline Mentee Courses Hub
+                        </h4>
+                        <p className="text-[11px] text-amber-700 mt-0.5">
+                          Upload courses, review mentee enrollment permissions, and track active milestone progress.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('institution-courses')}
+                        className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow-xs transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        Manage Courses &rarr;
+                      </button>
                     </div>
                   </div>
 

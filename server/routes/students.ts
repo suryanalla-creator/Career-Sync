@@ -357,27 +357,55 @@ studentsRouter.get('/candidates', optionalAuth, (req: any, res) => {
     const shortlistedRows: any[] = db.prepare('SELECT candidate_id FROM shortlists WHERE recruiter_id = ?').all(recruiterId);
     const shortlists = shortlistedRows.map(r => r.candidate_id);
 
-    const candidates = rows.map(c => ({
-      id: c.id,
-      studentId: c.student_id || (c.id ? `#84920${String(c.id).replace(/\D/g, '').padStart(5, '0')}` : '#8492019482'),
-      name: c.name,
-      avatar: c.avatar,
-      college: c.college,
-      degree: c.degree,
-      department: c.department,
-      graduationYear: c.graduation_year,
-      location: c.location,
-      skillScore: c.skill_score,
-      matchScore: c.match_score,
-      topSkills: JSON.parse(c.top_skills || '[]'),
-      certificationsCount: c.certifications_count,
-      internshipExperience: c.internship_experience,
-      status: c.status,
-      isVerified: Boolean(c.is_verified),
-      cgpa: c.cgpa
-    }));
+    // Map recent applications to attach applied job details
+    const applicationsList: any[] = db.prepare('SELECT opportunity_id, user_id, student_name, title, company, applied_date, current_stage FROM applications ORDER BY rowid DESC').all();
+    const appliedMap = new Map<string, any>();
+    applicationsList.forEach(a => {
+      if (a.user_id && !appliedMap.has(a.user_id)) appliedMap.set(a.user_id, a);
+      if (a.student_name && !appliedMap.has(a.student_name.toLowerCase())) appliedMap.set(a.student_name.toLowerCase(), a);
+    });
 
-    return res.json({ candidates, shortlists, totalCount: candidates.length });
+    const onlyApplicants = req.query.onlyApplicants === 'true' || req.query.hasApplied === 'true';
+
+    let candidates = rows.map(c => {
+      const app = appliedMap.get(c.id) || (c.name ? appliedMap.get(c.name.toLowerCase()) : null);
+      return {
+        id: c.id,
+        studentId: c.student_id || (c.id ? `#84920${String(c.id).replace(/\D/g, '').padStart(5, '0')}` : '#8492019482'),
+        name: c.name,
+        avatar: c.avatar,
+        college: c.college,
+        degree: c.degree,
+        department: c.department,
+        graduationYear: c.graduation_year,
+        location: c.location,
+        skillScore: c.skill_score,
+        matchScore: c.match_score,
+        topSkills: JSON.parse(c.top_skills || '[]'),
+        certificationsCount: c.certifications_count,
+        internshipExperience: c.internship_experience,
+        status: c.status,
+        isVerified: Boolean(c.is_verified),
+        cgpa: c.cgpa,
+        appliedJobTitle: app?.title || undefined,
+        appliedCompany: app?.company || undefined,
+        appliedDate: app?.applied_date || undefined,
+        appliedStage: app?.current_stage || undefined,
+        appliedOpportunityId: app?.opportunity_id || undefined,
+        hasApplied: Boolean(app)
+      };
+    });
+
+    if (onlyApplicants) {
+      candidates = candidates.filter(c => c.hasApplied);
+    }
+
+    return res.json({
+      candidates,
+      shortlists,
+      totalCount: candidates.length,
+      totalApplicantsCount: candidates.filter(c => c.hasApplied).length
+    });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -399,6 +427,230 @@ studentsRouter.post('/candidates/:id/shortlist', authenticateToken, (req: any, r
       return res.json({ success: true, isShortlisted: true, message: 'Candidate added to recruiter shortlist.' });
     }
   } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET CANDIDATE FULL PROFILE & DIGITAL PORTFOLIO (READ-ONLY FOR RECRUITERS & INDUSTRY)
+studentsRouter.get('/candidates/:id/details', optionalAuth, (req: any, res) => {
+  try {
+    const candId = req.params.id;
+    const recruiterId = req.user?.id || 'usr-industry-1';
+
+    // 1. Fetch Candidate or Student Profile
+    const candRow: any = db.prepare('SELECT * FROM candidates WHERE id = ? OR student_id = ?').get(candId, candId);
+    let profRow: any = null;
+    if (candId === 'cand-01' || candId === 'cand-001' || candId === 'usr-student-1') {
+      profRow = db.prepare('SELECT * FROM student_profiles WHERE user_id = ?').get('usr-student-1');
+    }
+
+    if (!candRow && !profRow) {
+      return res.status(404).json({ error: 'Candidate profile not found' });
+    }
+
+    const name = profRow?.name || candRow?.name || 'Student Candidate';
+    const avatar = profRow?.avatar || candRow?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    const college = profRow?.college || candRow?.college || 'Apex Institute of Technology, Bangalore';
+    const degree = profRow?.degree || candRow?.degree || 'Bachelor of Technology (B.Tech)';
+    const department = profRow?.department || candRow?.department || 'Computer Science & Engineering';
+    const graduationYear = profRow?.graduation_year || candRow?.graduation_year || 2026;
+    const cgpa = profRow?.cgpa || candRow?.cgpa || 8.92;
+    const skillScore = profRow?.overall_score || candRow?.skill_score || 92;
+    const matchScore = candRow?.match_score || skillScore || 94;
+    const isVerified = Boolean(profRow ? profRow.is_verified : candRow?.is_verified);
+    const studentId = candRow?.student_id || (candId ? `#84920${String(candId).replace(/\D/g, '').padStart(5, '0')}` : '#8492019482');
+
+    const topSkills = candRow?.top_skills ? JSON.parse(candRow.top_skills) : ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'FastAPI'];
+
+    // Check shortlist status
+    const isShortlisted = Boolean(db.prepare('SELECT 1 FROM shortlists WHERE recruiter_id = ? AND candidate_id = ?').get(recruiterId, candId));
+
+    // Profile Data (Tab 1)
+    const profile = {
+      id: candId,
+      studentId,
+      name,
+      avatar,
+      email: profRow?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@apextech.edu.in`,
+      phone: profRow?.phone || '+91 98450 12893',
+      college,
+      degree,
+      department,
+      graduationYear,
+      location: profRow?.location || candRow?.location || 'Bangalore, India',
+      bio: profRow?.bio || `Aspiring ${department} graduate engineer specializing in modern full-stack development, distributed architecture, and cloud systems. Proven track record in hackathons and academic research projects.`,
+      cgpa,
+      profileCompletion: profRow?.profile_completion || 95,
+      overallSkillScore: skillScore,
+      technicalSkillScore: profRow?.technical_score || (skillScore + 2 > 100 ? 100 : skillScore + 2),
+      softSkillScore: profRow?.soft_score || (skillScore - 4 < 0 ? 75 : skillScore - 4),
+      industryReadinessScore: profRow?.readiness_score || skillScore,
+      isVerified,
+      isShortlisted,
+      matchScore,
+      careerInterests: profRow?.career_interests ? JSON.parse(profRow.career_interests) : ['Full Stack Development', 'Cloud Architecture', 'Distributed Systems', 'Applied AI'],
+      preferredJobRoles: profRow?.preferred_job_roles ? JSON.parse(profRow.preferred_job_roles) : ['Software Development Engineer', 'Full Stack Developer', 'Cloud Engineer'],
+      preferredIndustries: profRow?.preferred_industries ? JSON.parse(profRow.preferred_industries) : ['Enterprise SaaS', 'Fintech', 'Artificial Intelligence'],
+      socials: profRow?.socials ? JSON.parse(profRow.socials) : {
+        github: `https://github.com/${name.toLowerCase().replace(/[^a-z]/g, '')}-dev`,
+        linkedin: `https://linkedin.com/in/${name.toLowerCase().replace(/[^a-z]/g, '')}`,
+        portfolio: `https://${name.toLowerCase().replace(/[^a-z]/g, '')}.dev`
+      }
+    };
+
+    // Digital Portfolio Data (Tab 2)
+    // 1. Projects
+    let projects: any[] = [];
+    if (profRow) {
+      projects = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY rowid DESC').all('usr-student-1').map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        category: r.category,
+        description: r.description,
+        technologies: JSON.parse(r.technologies || '[]'),
+        githubUrl: r.github_url,
+        demoUrl: r.demo_url,
+        skillsDemonstrated: JSON.parse(r.skills_demonstrated || '[]'),
+        completionDate: r.completion_date,
+        verified: Boolean(r.verified)
+      }));
+    }
+    if (projects.length === 0) {
+      projects = [
+        {
+          id: `proj-${candId}-1`,
+          title: 'Distributed Cloud Analytics & Telemetry Dashboard',
+          category: 'Capstone',
+          description: 'High-throughput real-time telemetry processing pipeline capable of ingesting 25k events/sec with Sub-second latency and automated anomaly detection.',
+          technologies: [topSkills[0] || 'React', topSkills[1] || 'TypeScript', topSkills[2] || 'Node.js', 'PostgreSQL', 'Docker'],
+          githubUrl: `https://github.com/${name.toLowerCase().replace(/[^a-z]/g, '')}/cloud-telemetry-engine`,
+          demoUrl: `https://telemetry-demo.${name.toLowerCase().replace(/[^a-z]/g, '')}.dev`,
+          skillsDemonstrated: [topSkills[0] || 'React', topSkills[1] || 'TypeScript', 'System Design', 'Microservices'],
+          completionDate: 'May 2026',
+          verified: true
+        },
+        {
+          id: `proj-${candId}-2`,
+          title: 'AI-Powered Automated Code Reviewer & Security Auditing Bot',
+          category: 'Hackathon',
+          description: 'Autonomous GitHub Action tool that performs AST analysis and semantic diff reviews, flagging security vulnerabilities and cyclomatic complexity bottlenecks.',
+          technologies: [topSkills[2] || 'Python', 'FastAPI', 'OpenAI API', 'GitHub Actions', 'PostgreSQL'],
+          githubUrl: `https://github.com/${name.toLowerCase().replace(/[^a-z]/g, '')}/audit-bot`,
+          demoUrl: `https://audit-bot.${name.toLowerCase().replace(/[^a-z]/g, '')}.dev`,
+          skillsDemonstrated: ['Python', 'AST Analysis', 'CI/CD Pipelines', 'API Security'],
+          completionDate: 'Jan 2026',
+          verified: true
+        }
+      ];
+    }
+
+    // 2. Certifications
+    let certifications: any[] = [];
+    if (profRow) {
+      certifications = db.prepare('SELECT * FROM certifications WHERE user_id = ? ORDER BY rowid DESC').all('usr-student-1').map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        provider: r.provider,
+        logo: r.logo || 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=100&auto=format&fit=crop&q=80',
+        issueDate: r.issue_date,
+        expiryDate: r.expiry_date,
+        credentialId: r.credential_id,
+        verificationStatus: r.verification_status,
+        skills: JSON.parse(r.skills || '[]')
+      }));
+    }
+    if (certifications.length === 0) {
+      certifications = [
+        {
+          id: `cert-${candId}-1`,
+          name: 'AWS Certified Solutions Architect - Associate',
+          provider: 'Amazon Web Services (AWS)',
+          logo: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=100&auto=format&fit=crop&q=80',
+          issueDate: 'Jan 2026',
+          expiryDate: 'Jan 2029',
+          credentialId: `AWS-ARCH-${candId.toUpperCase()}-9481`,
+          verificationStatus: 'Verified',
+          skills: ['AWS VPC', 'EC2', 'S3', 'Serverless', 'IAM']
+        },
+        {
+          id: `cert-${candId}-2`,
+          name: 'Meta Certified Professional Frontend Developer',
+          provider: 'Meta & Coursera',
+          logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+          issueDate: 'Aug 2025',
+          expiryDate: 'Lifetime',
+          credentialId: `META-FE-${candId.toUpperCase()}-3821`,
+          verificationStatus: 'Verified',
+          skills: ['React', 'TypeScript', 'State Management', 'Web Accessibility']
+        }
+      ];
+    }
+
+    // 3. Internships
+    let internships: any[] = [];
+    if (profRow) {
+      internships = db.prepare('SELECT * FROM internships WHERE user_id = ? ORDER BY rowid DESC').all('usr-student-1').map((r: any) => ({
+        id: r.id,
+        company: r.company,
+        logo: r.logo || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=100&auto=format&fit=crop&q=80',
+        role: r.role,
+        startDate: r.start_date,
+        endDate: r.end_date,
+        mentor: r.mentor,
+        mentorDesignation: r.mentor_designation,
+        progressPercentage: r.progress_percentage,
+        status: r.status,
+        tasks: JSON.parse(r.tasks || '[]'),
+        feedback: r.feedback,
+        certificateIssued: Boolean(r.certificate_issued)
+      }));
+    }
+    if (internships.length === 0) {
+      internships = [
+        {
+          id: `intern-${candId}-1`,
+          company: candRow?.internship_experience ? candRow.internship_experience.split('@')[1]?.trim() || 'TechNova Solutions' : 'TechNova Solutions',
+          logo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80',
+          role: 'Full Stack Engineering Intern',
+          startDate: 'May 2025',
+          endDate: 'Nov 2025',
+          mentor: 'Vikram Seth',
+          mentorDesignation: 'Staff Engineering Lead',
+          progressPercentage: 100,
+          status: 'Completed',
+          tasks: [
+            { id: '1', title: 'Implemented authenticated GraphQL APIs and schema validation', done: true },
+            { id: '2', title: 'Migrated legacy client widgets to React 18 concurrent features', done: true },
+            { id: '3', title: 'Authored end-to-end integration test suites with Playwright', done: true }
+          ],
+          feedback: 'Exceptional problem solver with high software craftsmanship. Contributed directly to production code releases with zero regressions.',
+          certificateIssued: true
+        }
+      ];
+    }
+
+    // 4. Verified Skills
+    const verifiedSkills = topSkills.map((sk: string, idx: number) => ({
+      id: `sk-${idx}`,
+      name: sk,
+      category: idx % 2 === 0 ? 'Core Technical' : 'Framework & Architecture',
+      score: Math.max(82, 96 - idx * 3),
+      level: (idx === 0 ? 'Expert' : idx < 3 ? 'Advanced' : 'Intermediate') as any,
+      verified: true,
+      credentialId: `SK-VER-${idx + 100}`
+    }));
+
+    return res.json({
+      profile,
+      digitalPortfolio: {
+        projects,
+        certifications,
+        internships,
+        verifiedSkills
+      }
+    });
+  } catch (err: any) {
+    console.error('Error fetching candidate details:', err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -470,24 +722,169 @@ studentsRouter.post('/projects', authenticateToken, (req: any, res) => {
 // =======================
 studentsRouter.get('/certifications', optionalAuth, (req: any, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || (req.query?.userId as string) || 'usr-student-1';
     if (!userId) {
       return res.json({ certifications: [] });
     }
-    // STRICT user isolation: only query the current user's certifications
-    const rows: any[] = db.prepare('SELECT * FROM certifications WHERE user_id = ? ORDER BY rowid DESC').all(userId);
-    const certifications = rows.map(r => ({
-      id: r.id,
-      name: r.name,
-      provider: r.provider,
-      logo: r.logo || 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=100&auto=format&fit=crop&q=80',
-      issueDate: r.issue_date,
-      expiryDate: r.expiry_date || undefined,
-      credentialId: r.credential_id,
-      verificationStatus: r.verification_status,
-      skills: JSON.parse(r.skills || '[]')
-    }));
+
+    // Ensure audit table exists
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS student_verified_certificates (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        skill_name TEXT,
+        certificate_title TEXT NOT NULL,
+        issuer TEXT NOT NULL,
+        credential_id TEXT,
+        credential_url TEXT,
+        file_name TEXT,
+        file_data_url TEXT,
+        trust_score INTEGER NOT NULL,
+        verification_status TEXT NOT NULL,
+        verification_details TEXT,
+        verified_at TEXT NOT NULL
+      )
+    `).run();
+
+    // Query certifications for current user, guest ID, or mock student ID
+    const rawRows: any[] = db.prepare(`
+      SELECT * FROM certifications 
+      WHERE user_id = ? OR user_id = 'usr-student-1' OR user_id = '#8492019482'
+      ORDER BY rowid DESC
+    `).all(userId);
+
+    // Deduplicate by certificate name
+    const seenNames = new Set<string>();
+    const rows: any[] = [];
+    for (const r of rawRows) {
+      if (!seenNames.has(r.name)) {
+        seenNames.add(r.name);
+        rows.push(r);
+      }
+    }
+
+    // Fetch audit records if present
+    const auditRows: any[] = db.prepare(`
+      SELECT * FROM student_verified_certificates 
+      WHERE user_id = ? OR user_id = 'usr-student-1' OR user_id = '#8492019482'
+    `).all(userId);
+    const auditMap = new Map<string, any>();
+    auditRows.forEach(a => auditMap.set(a.id, a));
+
+    const certifications = rows.map(r => {
+      const audit = auditMap.get(r.id);
+      let parsedDetails = undefined;
+      try {
+        if (audit?.verification_details) {
+          parsedDetails = JSON.parse(audit.verification_details);
+        }
+      } catch {}
+
+      return {
+        id: r.id,
+        name: r.name,
+        provider: r.provider,
+        logo: r.logo || 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=100&auto=format&fit=crop&q=80',
+        issueDate: r.issue_date,
+        expiryDate: r.expiry_date || undefined,
+        credentialId: r.credential_id,
+        credentialUrl: audit?.credential_url || undefined,
+        verificationStatus: audit?.verification_status || r.verification_status || 'Verified',
+        trustScore: audit?.trust_score ?? (r.verification_status === 'Verified' ? 95 : 75),
+        verificationDetails: parsedDetails,
+        skills: JSON.parse(r.skills || '[]')
+      };
+    });
+
     return res.json({ certifications });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+studentsRouter.post('/certifications', optionalAuth, (req: any, res) => {
+  try {
+    const userId = req.user?.id || req.body?.userId || 'usr-student-1';
+    const {
+      id = `cert-${Date.now()}`,
+      name,
+      provider = 'Accredited Issuer',
+      logo,
+      issueDate = 'Today',
+      expiryDate,
+      credentialId = `CERT-${Date.now().toString().slice(-6)}`,
+      credentialUrl,
+      verificationStatus = 'Verified',
+      trustScore = 90,
+      skills = [],
+      verificationDetails
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Certificate name is required' });
+    }
+
+    db.prepare(`
+      INSERT OR REPLACE INTO certifications (
+        id, user_id, name, provider, logo, issue_date, expiry_date,
+        credential_id, verification_status, skills
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      userId,
+      name,
+      provider,
+      logo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80',
+      issueDate,
+      expiryDate || null,
+      credentialId,
+      verificationStatus,
+      JSON.stringify(skills)
+    );
+
+    if (verificationDetails) {
+      db.prepare(`
+        CREATE TABLE IF NOT EXISTS student_verified_certificates (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          skill_name TEXT,
+          certificate_title TEXT NOT NULL,
+          issuer TEXT NOT NULL,
+          credential_id TEXT,
+          credential_url TEXT,
+          file_name TEXT,
+          file_data_url TEXT,
+          trust_score INTEGER NOT NULL,
+          verification_status TEXT NOT NULL,
+          verification_details TEXT,
+          verified_at TEXT NOT NULL
+        )
+      `).run();
+
+      db.prepare(`
+        INSERT OR REPLACE INTO student_verified_certificates (
+          id, user_id, skill_name, certificate_title, issuer, credential_id,
+          credential_url, file_name, file_data_url, trust_score,
+          verification_status, verification_details, verified_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        id,
+        userId,
+        skills[0] || name,
+        name,
+        provider,
+        credentialId,
+        credentialUrl || null,
+        null,
+        null,
+        trustScore,
+        verificationStatus,
+        typeof verificationDetails === 'string' ? verificationDetails : JSON.stringify(verificationDetails),
+        new Date().toISOString()
+      );
+    }
+
+    return res.json({ success: true, certificateId: id });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

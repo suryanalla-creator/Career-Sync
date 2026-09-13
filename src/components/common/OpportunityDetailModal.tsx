@@ -11,10 +11,14 @@ import {
   Calendar,
   DollarSign,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck,
+  Lock,
+  Award
 } from 'lucide-react';
 import { Opportunity } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { evaluateBenchmarkEligibility } from '../../utils/benchmarkEligibility';
 
 interface OpportunityDetailModalProps {
   opportunity: Opportunity | null;
@@ -34,7 +38,9 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
     setPageView,
     setSelectedAuthRole,
     getOpportunityMatch,
-    setActiveTab
+    setActiveTab,
+    studentProfile,
+    certificates
   } = useApp();
 
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
@@ -48,6 +54,14 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
   // Accurate real-time skill matching from AppContext
   const matchResult = getOpportunityMatch(opportunity);
   const accurateMatchPercentage = matchResult.matchPercentage;
+
+  // Minimum Industry Benchmark Eligibility Evaluation
+  const benchmarkEligibility = evaluateBenchmarkEligibility(
+    opportunity,
+    studentProfile,
+    accurateMatchPercentage,
+    (certificates || []).length
+  );
 
   const handleStatusChange = async (newStatus: 'Active' | 'Closed' | 'Archived', reason?: string) => {
     setIsUpdatingStatus(true);
@@ -294,10 +308,156 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
 
           {/* Eligibility Criteria */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-1">Eligibility Criteria</h3>
+            <h3 className="text-sm font-bold text-slate-900 mb-1">General Eligibility Criteria</h3>
             <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200/80">
               {opportunity.eligibility}
             </p>
+          </div>
+
+          {/* MINIMUM INDUSTRY BENCHMARK REQUIREMENTS & SHORTLISTING CRITERIA CARD */}
+          <div className={`p-5 rounded-2xl border-2 space-y-4 ${
+            benchmarkEligibility.isEligible
+              ? 'bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-slate-50 border-emerald-300 shadow-xs'
+              : 'bg-gradient-to-br from-amber-50/60 via-orange-50/30 to-slate-50 border-amber-300 shadow-xs'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3.5 border-slate-200/80">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl text-white shadow-xs ${
+                  benchmarkEligibility.isEligible ? 'bg-emerald-600' : 'bg-amber-600'
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                    Industry Benchmark Requirements
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                      benchmarkEligibility.isEligible
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-100 text-amber-900 border-amber-300'
+                    }`}>
+                      {benchmarkEligibility.isEligible
+                        ? '✓ All Benchmarks Met'
+                        : `Benchmark Gap (${benchmarkEligibility.metCriteria}/${benchmarkEligibility.totalCriteria} Passed)`}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Defined by recruiters to ensure qualified candidate shortlisting.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-left sm:text-right">
+                <span className={`text-xs font-black px-3 py-1.5 rounded-xl border inline-flex items-center gap-1.5 ${
+                  benchmarkEligibility.isEligible
+                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                    : 'bg-amber-100 text-amber-900 border-amber-300'
+                }`}>
+                  {benchmarkEligibility.isEligible ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" /> Eligible to Apply
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-amber-700" /> Application Gated
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Benchmark Criteria 4-Grid Checklist */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {benchmarkEligibility.checks.map((check) => (
+                <div
+                  key={check.id}
+                  className={`p-3.5 rounded-xl border transition-all ${
+                    check.met
+                      ? 'bg-white/90 border-emerald-200 shadow-2xs'
+                      : 'bg-white/90 border-amber-300 shadow-2xs'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      {check.label}
+                    </span>
+                    {check.met ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Passed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-black text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                        <AlertCircle className="w-3 h-3 text-amber-600" /> Gap
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-baseline justify-between mt-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Benchmark</span>
+                      <span className="text-xs font-black text-slate-800">{check.required}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block font-medium">Your Profile</span>
+                      <span className={`text-xs font-black ${check.met ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {check.current}
+                      </span>
+                    </div>
+                  </div>
+
+                  {check.gapMessage && (
+                    <p className="text-[10px] text-amber-800 bg-amber-50/80 p-1.5 rounded-lg border border-amber-200 mt-2 font-medium leading-tight">
+                      {check.gapMessage}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Recruiter Benchmark Notes / Justification */}
+            {opportunity.benchmarkNotes && (
+              <div className="p-3 bg-white/80 rounded-xl border border-slate-200 text-xs text-slate-700 flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-slate-900">Recruiter Note: </strong>
+                  <span>{opportunity.benchmarkNotes}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Ineligible Guidance & Gap Bridge Actions */}
+            {!benchmarkEligibility.isEligible && (
+              <div className="p-3.5 bg-amber-100/70 rounded-xl border border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="text-amber-950 space-y-0.5">
+                  <p className="font-bold flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0" />
+                    How to become eligible for this opening:
+                  </p>
+                  <p className="text-[11px] text-amber-900">
+                    Upload an accredited certificate to verify missing skills and boost your score, or complete recommended skill courses.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      setActiveTab('skill-profile');
+                    }}
+                    className="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer w-full sm:w-auto text-center"
+                  >
+                    Upload Verified Cert
+                  </button>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      setActiveTab('learning');
+                    }}
+                    className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition-colors cursor-pointer w-full sm:w-auto text-center"
+                  >
+                    View Courses
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Company Brief */}
@@ -410,7 +570,7 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
                     <AlertCircle className="w-4 h-4 text-slate-400" />
                     Applications Closed
                   </span>
-                ) : (
+                ) : benchmarkEligibility.isEligible ? (
                   <button
                     onClick={() => {
                       if (role === 'landing') {
@@ -425,6 +585,15 @@ export const OpportunityDetailModal: React.FC<OpportunityDetailModalProps> = ({
                   >
                     1-Click Apply Now
                     <Sparkles className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="px-5 py-2.5 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-not-allowed"
+                    title={`You do not meet the minimum benchmark: ${benchmarkEligibility.unmetLabels.join(', ')}`}
+                  >
+                    <Lock className="w-4 h-4 text-slate-400" />
+                    Application Locked (Benchmark Not Met)
                   </button>
                 )}
               </>

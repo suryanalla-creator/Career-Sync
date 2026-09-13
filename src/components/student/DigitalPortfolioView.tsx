@@ -31,24 +31,75 @@ export const DigitalPortfolioView: React.FC = () => {
     triggerConfetti,
     verifiedSkills,
     internshipCertificates,
-    setActiveTab
+    certificates,
+    skillsWeHave
   } = useApp();
 
   const [copied, setCopied] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [certs, setCerts] = useState<any[]>([]);
 
+  // Unified reactive skills list combining verifiedSkills and certificates from AppContext
+  const allPortfolioSkills = React.useMemo(() => {
+    const list = [...verifiedSkills];
+    certificates.forEach(c => {
+      const exists = list.some(s => s.name.toLowerCase() === c.skillName.toLowerCase());
+      if (!exists) {
+        list.push({
+          id: c.id,
+          name: c.skillName,
+          category: 'Technical',
+          score: 88,
+          level: 'Advanced',
+          sourceDescription: 'Uploaded Credential Proof',
+          issuer: c.issuer || 'Certified Credential',
+          fileName: c.fileName,
+          fileDataUrl: c.fileDataUrl,
+          recruiterImpact: 'High'
+        });
+      }
+    });
+    return list;
+  }, [verifiedSkills, certificates]);
+
+  // Unified reactive certifications list combining API certs and uploaded certificates from AppContext
+  const allCertifications = React.useMemo(() => {
+    const list = [...certs];
+    certificates.forEach(c => {
+      const exists = list.some(item => item.name.toLowerCase() === c.skillName.toLowerCase() || (item.credentialId && item.credentialId === c.id));
+      if (!exists) {
+        list.push({
+          id: c.id,
+          name: `${c.skillName} Certification`,
+          provider: c.issuer || 'Accredited Program',
+          logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80',
+          issueDate: c.uploadedAt || 'Verified',
+          credentialId: c.credentialId || `CERT-${c.id.slice(-6).toUpperCase()}`,
+          credentialUrl: c.credentialUrl,
+          verificationStatus: c.verificationStatus || 'Verified',
+          trustScore: c.trustScore || 95,
+          verificationDetails: c.verificationReport,
+          skills: [c.skillName],
+          fileName: c.fileName,
+          fileDataUrl: c.fileDataUrl
+        });
+      }
+    });
+    return list;
+  }, [certs, certificates]);
+
   // Modal Lightbox for viewing certificate proof
   const [previewProof, setPreviewProof] = useState<{
     title: string;
     issuerOrCompany: string;
-    type: 'skill' | 'internship';
+    type: 'skill' | 'internship' | 'certificate';
     credentialId?: string;
     ledgerHash?: string;
     mentor?: string;
     rating?: number;
     skills?: string[];
     fileName?: string;
+    fileDataUrl?: string;
     quote?: string;
   } | null>(null);
 
@@ -166,7 +217,9 @@ export const DigitalPortfolioView: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {/* Number of Skills */}
         <div
-          onClick={() => setActiveTab('skill-profile')}
+          onClick={() => {
+            document.getElementById('portfolio-skills-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
           className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-2">
@@ -176,7 +229,7 @@ export const DigitalPortfolioView: React.FC = () => {
             </div>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl sm:text-3xl font-black text-emerald-600">{verifiedSkills.length}</span>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-600">{allPortfolioSkills.length}</span>
             <span className="text-xs font-bold text-emerald-700">Skills</span>
           </div>
           <p className="text-[11px] text-slate-400 mt-1 font-medium">
@@ -186,7 +239,9 @@ export const DigitalPortfolioView: React.FC = () => {
 
         {/* Number of Internships */}
         <div
-          onClick={() => setActiveTab('jobs-internships')}
+          onClick={() => {
+            document.getElementById('portfolio-internships-section')?.scrollIntoView({ behavior: 'smooth' });
+          }}
           className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-2">
@@ -314,23 +369,33 @@ export const DigitalPortfolioView: React.FC = () => {
               </button>
 
               <button
-                onClick={() => setActiveTab('skill-profile')}
+                onClick={() => document.getElementById('portfolio-skills-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50/80 hover:bg-emerald-100/80 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all shadow-2xs group cursor-pointer"
               >
                 <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">
-                  {verifiedSkills.length}
+                  {allPortfolioSkills.length}
                 </div>
-                <span>Skills ({verifiedSkills.length})</span>
+                <span>Skills ({allPortfolioSkills.length})</span>
               </button>
 
               <button
-                onClick={() => setActiveTab('jobs-internships')}
+                onClick={() => document.getElementById('portfolio-internships-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50/80 hover:bg-indigo-100/80 text-indigo-800 border border-indigo-200 text-xs font-bold transition-all shadow-2xs group cursor-pointer"
               >
                 <div className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">
                   {internshipCertificates.length}
                 </div>
                 <span>Internships ({internshipCertificates.length})</span>
+              </button>
+
+              <button
+                onClick={() => document.getElementById('portfolio-certifications-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-50/80 hover:bg-purple-100/80 text-purple-800 border border-purple-200 text-xs font-bold transition-all shadow-2xs group cursor-pointer"
+              >
+                <div className="w-5 h-5 rounded-md bg-purple-600 text-white flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">
+                  {allCertifications.length}
+                </div>
+                <span>Certifications ({allCertifications.length})</span>
               </button>
             </div>
           </div>
@@ -344,9 +409,9 @@ export const DigitalPortfolioView: React.FC = () => {
           </div>
 
           {/* ──────────────────────────────────────────────────────────────────────────
-              TECHNICAL SKILLS (DYNAMIC FROM SKILL PROFILE)
+              TECHNICAL SKILLS (DYNAMIC FROM SKILL PROFILE & ASSESSMENTS)
               ────────────────────────────────────────────────────────────────────────── */}
-          <div className="space-y-4 pt-2">
+          <div id="portfolio-skills-section" className="space-y-4 pt-2 scroll-mt-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -354,31 +419,23 @@ export const DigitalPortfolioView: React.FC = () => {
                     Technical Skills &amp; Competencies
                   </h2>
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                    {verifiedSkills.length} Skills Listed
+                    {allPortfolioSkills.length} Skills Listed
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Skills, technologies, and competencies added to your profile.
+                  Verified skills, technologies, and competencies synchronized automatically from your Skill Profile.
                 </p>
               </div>
-
-              <button
-                onClick={() => setActiveTab('skill-profile')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Skills
-              </button>
             </div>
 
-            {verifiedSkills.length === 0 ? (
+            {allPortfolioSkills.length === 0 ? (
               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-1">
                 <p className="text-xs font-bold text-slate-700">No skills added yet</p>
-                <p className="text-[11px] text-slate-400">Add your technical skills and certifications in the Skill Profile section.</p>
+                <p className="text-[11px] text-slate-400">Skills, certifications, and assessment scores added in your Skill Profile will automatically synchronize and appear here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {verifiedSkills.map((skill) => (
+                {allPortfolioSkills.map((skill) => (
                   <div
                     key={skill.id || skill.name}
                     className="p-3.5 bg-slate-50/70 hover:bg-white rounded-2xl border border-slate-200 hover:border-emerald-300 hover:shadow-xs transition-all space-y-2 group"
@@ -412,7 +469,8 @@ export const DigitalPortfolioView: React.FC = () => {
                             title: skill.name,
                             issuerOrCompany: skill.issuer || 'Course / Certificate',
                             type: 'skill',
-                            fileName: skill.fileName || `${skill.name.replace(/\s+/g, '_')}_Certificate.pdf`
+                            fileName: skill.fileName || `${skill.name.replace(/\s+/g, '_')}_Certificate.pdf`,
+                            fileDataUrl: skill.fileDataUrl
                           })}
                           className="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 cursor-pointer"
                         >
@@ -430,7 +488,7 @@ export const DigitalPortfolioView: React.FC = () => {
           {/* ──────────────────────────────────────────────────────────────────────────
               INTERNSHIPS & PRACTICAL EXPERIENCE (DYNAMIC FROM JOBS & INTERNSHIPS)
               ────────────────────────────────────────────────────────────────────────── */}
-          <div className="space-y-4 pt-4">
+          <div id="portfolio-internships-section" className="space-y-4 pt-4 scroll-mt-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
@@ -442,23 +500,15 @@ export const DigitalPortfolioView: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Practical work experiences, summer internships, and industry projects.
+                  Practical work experiences, summer internships, and industry projects synchronized from Jobs &amp; Internships.
                 </p>
               </div>
-
-              <button
-                onClick={() => setActiveTab('jobs-internships')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Internship
-              </button>
             </div>
 
             {internshipCertificates.length === 0 ? (
               <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-1">
                 <p className="text-xs font-bold text-slate-700">No internships recorded yet</p>
-                <p className="text-[11px] text-slate-400">Add completed internship experience in the Jobs &amp; Internships section.</p>
+                <p className="text-[11px] text-slate-400">Completed internships and work experiences recorded in the Jobs &amp; Internships section will automatically display here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -691,24 +741,54 @@ export const DigitalPortfolioView: React.FC = () => {
             )}
           </div>
 
-          {/* Certifications */}
-          <div className="space-y-3 pt-4">
-            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Certifications &amp; Course Proofs ({certs.length})
-            </h2>
-            {certs.length === 0 ? (
+          {/* Certifications & Course Proofs */}
+          <div id="portfolio-certifications-section" className="space-y-3 pt-4 scroll-mt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Certifications &amp; Course Proofs ({allCertifications.length})
+                </h2>
+                <p className="text-[11px] text-slate-500">
+                  Course completions and credentials verified from Courses &amp; Certifications and Skill Profile.
+                </p>
+              </div>
+            </div>
+
+            {allCertifications.length === 0 ? (
               <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <p className="text-xs text-slate-500">No external certifications recorded yet.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {certs.slice(0, 4).map((cert) => (
-                  <div key={cert.id} className="p-3 bg-white rounded-2xl border border-slate-200 flex items-center gap-3">
-                    <img src={cert.logo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80'} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-200" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-900">{cert.name}</p>
-                      <p className="text-[11px] text-slate-500">{cert.provider} {cert.credentialId ? `• ID: ${cert.credentialId}` : ''}</p>
+                {allCertifications.map((cert) => (
+                  <div key={cert.id} className="p-3.5 bg-white rounded-2xl border border-slate-200 hover:border-purple-300 transition-all flex items-center justify-between gap-3 group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img src={cert.logo || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=100&auto=format&fit=crop&q=80'} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-purple-700 transition-colors">{cert.name}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{cert.provider} {cert.credentialId ? `• ID: ${cert.credentialId}` : ''}</p>
+                      </div>
                     </div>
+
+                    {cert.fileName ? (
+                      <button
+                        onClick={() => setPreviewProof({
+                          title: cert.name,
+                          issuerOrCompany: cert.provider,
+                          type: 'certificate',
+                          credentialId: cert.credentialId,
+                          fileName: cert.fileName,
+                          fileDataUrl: cert.fileDataUrl
+                        })}
+                        className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1 flex-shrink-0 transition-colors cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" /> Proof
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex-shrink-0">
+                        ✓ {cert.trustScore || 95}% Verified
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -768,6 +848,12 @@ export const DigitalPortfolioView: React.FC = () => {
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-200 text-blue-800">
                     Attached File
                   </span>
+                </div>
+              )}
+
+              {previewProof.fileDataUrl && previewProof.fileDataUrl.startsWith('data:image/') && (
+                <div className="rounded-2xl overflow-hidden border border-slate-200 max-h-56 bg-slate-100 flex items-center justify-center">
+                  <img src={previewProof.fileDataUrl} alt="Document preview" className="max-h-56 object-contain w-full" />
                 </div>
               )}
             </div>

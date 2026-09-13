@@ -54,7 +54,7 @@ export const AICopilotBot: React.FC<AICopilotBotProps> = ({
   const [keySavedToast, setKeySavedToast] = useState(false);
   const [hasServerApiKey, setHasServerApiKey] = useState(false);
   const [activeProvider, setActiveProvider] = useState('CareerSync Smart Engine');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Check server AI status on mount
   useEffect(() => {
@@ -77,20 +77,22 @@ export const AICopilotBot: React.FC<AICopilotBotProps> = ({
     {
       id: 'init-1',
       sender: 'ai',
-      text: `Hello ${studentProfile.name}! 👋 I am your CareerSync AI Placement Copilot. Your target role is **${activeRole.title}** and your Industry Readiness score is currently **${studentProfile.industryReadinessScore}%**.\n\nAsk me about required skills, crack technical interview rounds, optimize for recruiter ATS, or request a customized roadmap!`,
+      text: `Hello ${studentProfile.name}! 👋 I am your CareerSync AI Placement Copilot. Your target role is **${activeRole.title}** and your Industry Readiness score is currently **${studentProfile.industryReadinessScore}%**.\n\nAsk me for course recommendations, key skills to learn, internship opportunities, campus placement drives, or interview guidance!`,
       timestamp: 'Just now'
     }
   ]);
 
   const quickPrompts = [
-    `Skills needed for ${activeRole.title}`,
-    `How to crack campus technical interviews?`,
-    `Recommended certifications for ATS boost`,
-    `Bridge my current skill gaps`
+    `Recommend courses & certifications for ${activeRole.title}`,
+    `What key skills and tools should I learn?`,
+    `Show tailored internship opportunities`,
+    `How to crack campus technical interview rounds?`
   ];
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -175,22 +177,34 @@ export const AICopilotBot: React.FC<AICopilotBotProps> = ({
       let actionTab: string | undefined;
       let actionLabel: string | undefined;
 
-      if (lower.includes('skill') || lower.includes('require') || lower.includes('learn')) {
+      if (lower.includes('course') || lower.includes('cert') || lower.includes('curriculum')) {
+        reply = `### 📘 Recommended Courses & Certifications for **${activeRole.title}**:\n\n1. **Cloud Computing**: AWS Certified Cloud Practitioner / Solutions Architect track.\n2. **Full-Stack Engineering**: Meta Professional Full-Stack Developer on Coursera.\n3. **Database Systems**: Oracle Certified SQL / MongoDB Developer Associate.\n\n*Next Step*: Check accredited courses in **Online Courses & Certifications**.`;
+        actionTab = 'online-courses';
+        actionLabel = 'Explore Online Courses & Certifications';
+      } else if (lower.includes('intern') || lower.includes('practicum') || lower.includes('summer')) {
+        reply = `### 💼 Recommended Internships for **${activeRole.title}**:\n\n1. **Software Engineering Summer Intern** (TechNova Solutions) — React, Node.js, and Redis caching.\n2. **Cloud Systems Intern** (CloudScale Networks) — CI/CD automation & Docker.\n3. **Full-Stack Practicum** (NextGen Enterprise) — REST API and database modeling.\n\n*Next Step*: Browse listings in **Jobs & Internships**.`;
+        actionTab = 'jobs-internships';
+        actionLabel = 'View Tailored Internships';
+      } else if (lower.includes('skill') || lower.includes('require') || lower.includes('learn') || lower.includes('gap')) {
         const topSkills = (activeRole.keySkills || []).slice(0, 4).join(', ');
         const verifiedText = skillsWeHave && skillsWeHave.length > 0
           ? `You currently have verified competency in **${skillsWeHave.slice(0, 3).join(', ')}**.`
-          : `You have not yet completed verified skill assessments for this role.`;
-        reply = `For **${activeRole.title}**, recruiters in Tier-1 product companies prioritize:\n• **${topSkills}**\n\n${verifiedText} I recommend taking an assessment test in your Skill Profile to validate technical proficiency.`;
+          : `Take an assessment test in your Skill Profile to validate your competencies.`;
+        reply = `### 🛠️ Priority Technical Skills for **${activeRole.title}**:\n\n• **Core Tech**: ${topSkills}\n• **System Design**: REST API contracts, caching, and database schemas\n\n${verifiedText}`;
         actionTab = 'skill-profile';
-        actionLabel = 'Check Skills & Take Assessment';
-      } else if (lower.includes('interview') || lower.includes('crack') || lower.includes('round')) {
-        reply = `Top interview playbook for **B.Tech ${activeBranch}** candidates targeting **${activeRole.title}**:\n1. **Data Structures & Algorithms**: Master 50 LeetCode Mediums on Trees, Graphs, DP, and HashMaps.\n2. **System Design**: Be ready to design a scalable URL shortener, real-time chat, or notification service.\n3. **Behavioral**: Use the STAR method for leadership and conflict resolution.`;
+        actionLabel = 'View Skill Profile & Take Assessment';
+      } else if (lower.includes('interview') || lower.includes('crack') || lower.includes('round') || lower.includes('dsa')) {
+        reply = `### 🎯 Campus Technical Interview Playbook for **${activeBranch}**:\n\n1. **Online Assessment (OA)**: Practice 50 LeetCode Mediums on Trees, Graphs, DP, and HashMaps.\n2. **Technical Architecture**: Be prepared to explain your portfolio projects with component diagrams.\n3. **HR & Behavioral**: Structure leadership and problem-solving answers using the STAR method.`;
         actionTab = 'career-path';
-        actionLabel = 'Open Career Roadmap';
-      } else {
-        reply = `Based on your profile in **${activeBranch}** and target role **${activeRole.title}**, you are well-positioned for top tier campus placement drives. Ask me any specific technical or interview question!`;
+        actionLabel = 'Open Career Path Roadmap';
+      } else if (lower.includes('job') || lower.includes('opening') || lower.includes('drive')) {
+        reply = `### 🚀 Campus Placement Opportunities for **${activeRole.title}**:\n\n• **TechNova Solutions**: Graduate Software Engineer (₹12 - ₹18 LPA)\n• **Microsoft**: Software Development Engineer (Campus FTE)\n• **Deloitte**: Systems Analyst (Campus Drive)`;
         actionTab = 'jobs-internships';
-        actionLabel = 'Explore Jobs & Internships Hub';
+        actionLabel = 'Explore Placement Drives';
+      } else {
+        reply = `### 🌟 Recommendations for **${studentProfile.name}** (**${activeRole.title}**):\n\n1. 🛠️ **Skills**: Master ${activeRole.keySkills.slice(0, 3).join(', ')}.\n2. 📘 **Courses**: Complete AWS Cloud or Meta Full-Stack certifications.\n3. 💼 **Internships**: Apply for summer software & cloud internships.\n4. 🚀 **Jobs**: Target campus drives matching your ${studentProfile.industryReadinessScore}% readiness score.`;
+        actionTab = 'online-courses';
+        actionLabel = 'Explore Courses & Certifications';
       }
 
       const aiMsg: BotMessage = {
@@ -300,7 +314,7 @@ export const AICopilotBot: React.FC<AICopilotBotProps> = ({
       </div>
 
       {/* Chat Messages Area */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/50">
+      <div ref={messagesContainerRef} className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/50">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -366,7 +380,6 @@ export const AICopilotBot: React.FC<AICopilotBotProps> = ({
             </span>
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Form */}

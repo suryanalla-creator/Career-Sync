@@ -278,7 +278,7 @@ export const LandingPage: React.FC = () => {
             <div className="space-y-2">
               <p className="text-xs font-bold text-white uppercase tracking-wider">Institutions</p>
               <ul className="space-y-1.5 text-xs">
-                <li><button onClick={() => { navigateToRole('institution'); setActiveTab('students-mgmt'); }} className="hover:text-white">Student Analytics</button></li>
+                <li><button onClick={() => { navigateToRole('institution'); setActiveTab('my-students'); }} className="hover:text-white">Student Analytics</button></li>
                 <li><button onClick={() => { navigateToRole('institution'); setActiveTab('placements'); }} className="hover:text-white">Placement Drives</button></li>
                 <li><button onClick={() => { navigateToRole('institution'); setActiveTab('skill-gaps'); }} className="hover:text-white">Skill Gap Matrix</button></li>
                 <li><button onClick={() => { navigateToRole('institution'); setActiveTab('collab-hub'); }} className="hover:text-white">Industry MoUs</button></li>

@@ -12,7 +12,8 @@ import {
   BarChart3,
   CheckCircle2,
   FileSpreadsheet,
-  Database
+  Database,
+  BookOpen
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { mockInstitutionStats, mockPlacementDrives } from '../../data/mockData';
@@ -53,6 +54,13 @@ export const InstitutionDashboard: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             <button
+              onClick={() => setActiveTab('institution-courses')}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <BookOpen className="w-4 h-4 text-white" />
+              Online &amp; Offline Courses
+            </button>
+            <button
               onClick={() => setActiveTab('my-students')}
               className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
             >
@@ -82,7 +90,7 @@ export const InstitutionDashboard: React.FC = () => {
       {/* 16. INSTITUTION DASHBOARD: 6 Main Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div
-          onClick={() => setActiveTab('students-mgmt')}
+          onClick={() => setActiveTab('my-students')}
           className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs cursor-pointer hover:border-blue-400 transition-all"
         >
           <span className="text-[11px] font-bold text-slate-400 uppercase">Total Students</span>
@@ -133,6 +141,39 @@ export const InstitutionDashboard: React.FC = () => {
           <span className="text-[11px] font-bold text-slate-400 uppercase">Students With Gaps</span>
           <p className="text-2xl font-black text-red-600 mt-1">{mockInstitutionStats.studentsWithSkillGaps}</p>
           <span className="text-[10px] text-red-700 font-semibold mt-1 block">Target for Bridge Labs</span>
+        </div>
+      </div>
+
+      {/* DEDICATED BLOCK: Online & Offline Courses for Mentees */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-7 text-white border border-indigo-800/40 shadow-lg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold border border-blue-400/20">
+              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+              Faculty Course &amp; Workshop Hub
+            </div>
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight">
+              Online &amp; Offline Mentee Courses &amp; Progress
+            </h2>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Upload custom online webinars or physical campus lab workshops, approve student enrollments, and track live mentee milestones and assessment scores.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setActiveTab('institution-courses')}
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+            >
+              Open Course Management &rarr;
+            </button>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              View in Mentor Profile
+            </button>
+          </div>
         </div>
       </div>
 

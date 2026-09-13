@@ -8,7 +8,9 @@ import {
   NotificationItem,
   Conversation,
   AuthRole,
-  InternshipRecord
+  InternshipRecord,
+  VerificationReport,
+  CertificationItem
 } from '../types';
 
 const TOKEN_KEY = 'careersync_auth_token';
@@ -113,7 +115,7 @@ export const api = {
       return res.opportunity;
     },
     create: async (oppData: Partial<Opportunity>) => {
-      return request<{ success: boolean; message: string; id: string }>('/api/opportunities', {
+      return request<{ success: boolean; message: string; id: string; opportunity?: Opportunity }>('/api/opportunities', {
         method: 'POST',
         body: JSON.stringify(oppData)
       });
@@ -133,14 +135,31 @@ export const api = {
 
   // Applications
   applications: {
-    getAll: async () => {
-      const res = await request<{ applications: ApplicationTrackerItem[] }>('/api/applications');
+    getAll: async (params?: { opportunityId?: string; role?: string; organization?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.opportunityId) query.set('opportunityId', params.opportunityId);
+      if (params?.role) query.set('role', params.role);
+      if (params?.organization) query.set('organization', params.organization);
+      const res = await request<{ applications: (ApplicationTrackerItem & {
+        candidateId?: string;
+        studentId?: string;
+        avatar?: string;
+        college?: string;
+        degree?: string;
+        department?: string;
+        graduationYear?: number;
+        cgpa?: number;
+        skillScore?: number;
+        matchScore?: number;
+        topSkills?: string[];
+        isVerified?: boolean;
+      })[] }>(`/api/applications${query.toString() ? `?${query.toString()}` : ''}`);
       return res.applications;
     },
-    apply: async (opportunityId: string) => {
-      return request<{ success: boolean; message: string; applicationId: string }>('/api/applications', {
+    apply: async (opportunityId: string, studentDetails?: any) => {
+      return request<{ success: boolean; message: string; applicationId: string; application?: any }>('/api/applications', {
         method: 'POST',
-        body: JSON.stringify({ opportunityId })
+        body: JSON.stringify({ opportunityId, ...(studentDetails || {}) })
       });
     },
     updateStage: async (id: string, stage: string, note?: string) => {
@@ -187,6 +206,7 @@ export const api = {
       status?: string;
       sortBy?: string;
       sortOrder?: string;
+      onlyApplicants?: boolean;
     }) => {
       const query = new URLSearchParams();
       if (params?.q) query.set('q', params.q);
@@ -202,7 +222,19 @@ export const api = {
       if (params?.status) query.set('status', params.status);
       if (params?.sortBy) query.set('sortBy', params.sortBy);
       if (params?.sortOrder) query.set('sortOrder', params.sortOrder);
-      return request<{ candidates: Candidate[]; shortlists: string[]; totalCount?: number }>(`/api/students/candidates?${query.toString()}`);
+      if (params?.onlyApplicants) query.set('onlyApplicants', 'true');
+      return request<{ candidates: Candidate[]; shortlists: string[]; totalCount?: number; totalApplicantsCount?: number }>(`/api/students/candidates?${query.toString()}`);
+    },
+    getCandidateDetails: async (candidateId: string) => {
+      return request<{
+        profile: any;
+        digitalPortfolio: {
+          projects: any[];
+          certifications: any[];
+          internships: any[];
+          verifiedSkills: any[];
+        };
+      }>(`/api/students/candidates/${candidateId}/details`);
     },
     toggleShortlist: async (candidateId: string) => {
       return request<{ success: boolean; isShortlisted: boolean; message: string }>(`/api/students/candidates/${candidateId}/shortlist`, {
@@ -230,6 +262,12 @@ export const api = {
     enrollProgram: async (programId: string) => {
       return request<{ success: boolean; message: string }>(`/api/programs/${programId}/enroll`, {
         method: 'POST'
+      });
+    },
+    completeProgram: async (id: string, details?: { studentId?: string; studentName?: string; usn?: string; department?: string }) => {
+      return request<{ success: boolean; message: string; certificate?: any; credentialId?: string }>(`/api/programs/${id}/complete`, {
+        method: 'POST',
+        body: JSON.stringify(details || {})
       });
     },
     updateProgramStatus: async (id: string, status: 'Live & Accepting' | 'Upcoming' | 'Closed' | 'Archived', closedReason?: string) => {
@@ -303,9 +341,16 @@ export const api = {
   },
 
   certifications: {
-    getAll: async () => {
-      const res = await request<{ certifications: any[] }>('/api/students/certifications');
-      return res.certifications;
+    getAll: async (userId?: string) => {
+      const q = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+      const res = await request<{ certifications: CertificationItem[] }>(`/api/students/certifications${q}`);
+      return res.certifications || [];
+    },
+    add: async (payload: Partial<CertificationItem>) => {
+      return request<{ success: boolean; certificateId: string }>('/api/students/certifications', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
     },
     verify: async (id: string) => {
       return request<{ success: boolean; message: string }>(`/api/students/certifications/${id}/verify`, {
@@ -318,6 +363,243 @@ export const api = {
     getAll: async () => {
       const res = await request<{ internships: any[] }>('/api/students/internships');
       return res.internships;
+    }
+  },
+
+  // Institution & Mentee Courses Management
+  courses: {
+    getPrograms: async () => {
+      const res = await request<{ programs: LearningProgram[] }>('/api/programs');
+      return res.programs;
+    },
+    createProgram: async (data: Partial<LearningProgram>) => {
+      return request<{ success: boolean; message: string; program: LearningProgram }>('/api/programs', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    updateStatus: async (id: string, status: 'Live & Accepting' | 'Upcoming' | 'Closed' | 'Archived', closedReason?: string) => {
+      return request<{ success: boolean; message: string; status: string; isClosed: boolean; closedReason?: string }>(
+        `/api/programs/${id}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status, closedReason })
+        }
+      );
+    },
+    getMenteeEnrollments: async (params?: { courseId?: string; status?: string; studentId?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.courseId) query.append('courseId', params.courseId);
+      if (params?.status) query.append('status', params.status);
+      if (params?.studentId) query.append('studentId', params.studentId);
+      const url = `/api/courses/mentees${query.toString() ? `?${query.toString()}` : ''}`;
+      const res = await request<{ mentees: any[] }>(url);
+      return res.mentees;
+    },
+    apply: async (data: {
+      courseId: string;
+      statementOfPurpose?: string;
+      studentName?: string;
+      studentEmail?: string;
+      department?: string;
+      usn?: string;
+      cgpa?: number;
+    }) => {
+      return request<{ success: boolean; message: string; enrollmentId: string }>('/api/courses/apply', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    updatePermission: async (id: string, status: 'approved' | 'declined' | 'pending', mentorNotes?: string) => {
+      return request<{ success: boolean; message: string; status: string; permissionDecidedAt: string }>(
+        `/api/courses/mentees/${id}/permission`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status, mentorNotes })
+        }
+      );
+    },
+    updateProgress: async (
+      id: string,
+      data: {
+        progressPercentage?: number;
+        currentModule?: string;
+        completedAssignments?: number;
+        totalAssignments?: number;
+        assessmentScore?: number;
+        mentorNotes?: string;
+        isCertified?: boolean;
+      }
+    ) => {
+      return request<{ success: boolean; message: string; progressPercentage: number; isCertified: boolean }>(
+        `/api/courses/mentees/${id}/progress`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(data)
+        }
+      );
+    },
+    completeProgram: async (id: string, details?: { studentId?: string; studentName?: string; usn?: string; department?: string }) => {
+      return request<{ success: boolean; message: string; certificate?: any; credentialId?: string }>(`/api/programs/${id}/complete`, {
+        method: 'POST',
+        body: JSON.stringify(details || {})
+      });
+    },
+    generateTest: async (data: {
+      courseId: string;
+      courseTitle: string;
+      category?: string;
+      level?: string;
+      skills?: string[];
+      studentId?: string;
+    }) => {
+      return request<{
+        success: boolean;
+        sessionId: string;
+        courseId: string;
+        courseTitle: string;
+        totalQuestions: number;
+        durationMinutes: number;
+        durationSeconds: number;
+        maxViolations: number;
+        provider: string;
+        rules: {
+          totalQuestions: number;
+          timeLimit: string;
+          fullscreenRequired: boolean;
+          maxFullscreenExits: number;
+          disqualificationConsequence: string;
+        };
+        questions: Array<{
+          id: number;
+          question: string;
+          options: string[];
+          topic: string;
+          difficulty?: string;
+        }>;
+      }>('/api/ai/course-assessment', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    submitTest: async (data: {
+      sessionId: string;
+      courseId: string;
+      studentId?: string;
+      answers: Record<number, number>;
+      violationsCount: number;
+      isDisqualified?: boolean;
+    }) => {
+      return request<{
+        success: boolean;
+        isDisqualified: boolean;
+        score: number;
+        totalQuestions: number;
+        percentage: number;
+        passed: boolean;
+        certificateEligible: boolean;
+        violationsCount: number;
+        feedback: string;
+        certificate?: any;
+        credentialId?: string;
+      }>('/api/ai/course-assessment/submit', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    },
+    recordViolation: async (menteeEnrollmentId: string, strikeCount: number, reason?: string) => {
+      return request<{
+        success: boolean;
+        strikeCount: number;
+        isDisqualified: boolean;
+        testStatus: string;
+        message: string;
+      }>(`/api/courses/mentees/${menteeEnrollmentId}/record-violation`, {
+        method: 'POST',
+        body: JSON.stringify({ strikeCount, reason })
+      });
+    },
+    saveProgress: async (courseId: string, data: {
+      stoppedAtSeconds: number;
+      progressPercentage?: number;
+      currentModule?: string;
+      completedModules?: Record<string, boolean>;
+      studentId?: string;
+    }) => {
+      return request<{
+        success: boolean;
+        courseId: string;
+        stoppedAtSeconds: number;
+        progressPercentage: number;
+      }>(`/api/courses/${courseId}/progress`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+    }
+  },
+
+  // Automated Certificate Verification Engine & Issuers
+  certificates: {
+    verify: async (payload: {
+      fileName?: string;
+      fileDataUrl?: string;
+      mimeType?: string;
+      issuer?: string;
+      credentialId?: string;
+      credentialUrl?: string;
+      skillName?: string;
+      studentName?: string;
+    }) => {
+      return request<{ success: boolean; report: VerificationReport }>('/api/certificates/verify', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    },
+    getTrustedIssuers: async () => {
+      return request<{ success: boolean; issuers: Array<{ name: string; category: string; sampleVerificationUrl?: string }> }>('/api/certificates/trusted-issuers');
+    },
+    save: async (payload: any) => {
+      return request<{ success: boolean; message: string; certificateId: string }>('/api/certificates/save', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+  },
+
+  // AI Engine & Question Bank Training Telemetry
+  ai: {
+    getTrainingStats: async () => {
+      return request<{
+        success: boolean;
+        totalQuestions: number;
+        domains: Record<string, number>;
+        difficulties: Record<string, number>;
+        model: string;
+        hasApiKey: boolean;
+        status: string;
+        updatedAt: string;
+      }>('/api/ai/training-stats');
+    },
+    trainQuestions: async () => {
+      return request<{
+        success: boolean;
+        message: string;
+        stats: any;
+      }>('/api/ai/train-questions', {
+        method: 'POST'
+      });
+    },
+    getTrainedQuestions: async (params?: { domain?: string; difficulty?: string; courseTitle?: string; count?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.domain) q.set('domain', params.domain);
+      if (params?.difficulty) q.set('difficulty', params.difficulty);
+      if (params?.courseTitle) q.set('courseTitle', params.courseTitle);
+      if (params?.count) q.set('count', String(params.count));
+      return request<{
+        success: boolean;
+        count: number;
+        questions: any[];
+      }>(`/api/ai/trained-questions?${q.toString()}`);
     }
   }
 };

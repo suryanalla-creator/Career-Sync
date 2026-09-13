@@ -86,8 +86,9 @@ export const Sidebar: React.FC = () => {
 
   const institutionNavItems: NavItem[] = [
     { id: 'dashboard', label: 'Institution Overview', icon: LayoutDashboard },
-    { id: 'my-students', label: 'My Students', icon: GraduationCap, highlight: true },
-    { id: 'students-mgmt', label: 'Students Directory', icon: Users, badge: '4,850' },
+    { id: 'profile', label: 'Faculty & Mentor Profile', icon: User },
+    { id: 'institution-courses', label: 'Online & Offline Courses', icon: BookOpen, highlight: true },
+    { id: 'my-students', label: 'My Students', icon: GraduationCap },
     { id: 'skill-gaps', label: 'Skill Gap Analytics', icon: BarChart3 },
     { id: 'placements', label: 'Placement Drives', icon: TrendingUp, badge: '84%' },
     { id: 'collab-hub', label: 'Industry Collaboration', icon: Handshake, badge: '126' },

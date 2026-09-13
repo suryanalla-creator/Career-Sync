@@ -50,6 +50,8 @@ import {
 } from '../../data/assessmentBank';
 import { AssessmentQuestion, AssessmentQuestionType } from '../../types';
 import { api } from '../../services/api';
+import { CertificateVerificationModal } from '../common/CertificateVerificationModal';
+import { CertificateAuditReportModal } from '../common/CertificateAuditReportModal';
 
 export interface SkillProfileViewProps {
   initialMode?: 'overview' | 'matrix' | 'assessment' | 'radar' | 'certificates' | 'gaps';
@@ -270,6 +272,17 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
   const [newSkillInput, setNewSkillInput] = useState('');
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [activeUploadSkill, setActiveUploadSkill] = useState<string | null>(null);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyTargetSkill, setVerifyTargetSkill] = useState('');
+  const [auditReportCert, setAuditReportCert] = useState<{
+    certificateName: string;
+    issuer: string;
+    credentialId?: string;
+    credentialUrl?: string;
+    issueDate?: string;
+    trustScore?: number;
+    report?: any;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Assessment Quiz state
@@ -493,19 +506,16 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
 
   // Certificate file triggers
   const handleTriggerUpload = (skillName: string) => {
-    setActiveUploadSkill(skillName);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
+    setVerifyTargetSkill(skillName);
+    setIsVerifyModalOpen(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeUploadSkill) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be under 5 MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      alert('File size must be under 8 MB.');
       return;
     }
 
@@ -520,20 +530,8 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
 
   const handleDropUpload = (e: React.DragEvent, skillName: string) => {
     e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be under 5 MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      uploadSkillCertificate(skillName, file.name, dataUrl, file.type);
-    };
-    reader.readAsDataURL(file);
+    setVerifyTargetSkill(skillName);
+    setIsVerifyModalOpen(true);
   };
 
   const handleAddCustomSkill = (e: React.FormEvent) => {
@@ -779,6 +777,111 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
           </p>
         </div>
       </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          SECTION: INDUSTRY BENCHMARK VS STUDENT PROFILE RADAR (MOVED TO TOP)
+          ────────────────────────────────────────────────────────────────────────── */}
+      {(activeMode === 'overview' || activeMode === 'radar') && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 mb-1.5">
+                <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                Industry Benchmark vs. Student Profile
+              </div>
+              <h2 className="text-lg sm:text-xl font-black text-slate-900">
+                Student Profile vs. Industry Benchmark Comparison
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Real-time calibration against hiring cutoffs for top engineering &amp; technology enterprises across India.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-semibold self-start sm:self-auto bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200">
+              <span className="flex items-center gap-1.5 text-blue-700">
+                <span className="w-3 h-3 rounded-full bg-blue-600 shadow-xs" />
+                Student Profile
+              </span>
+              <span className="flex items-center gap-1.5 text-slate-600">
+                <span className="w-1.5 h-3.5 rounded-xs bg-slate-700" />
+                Industry Benchmark
+              </span>
+            </div>
+          </div>
+
+          {/* Competency Bars */}
+          <div className="space-y-5">
+            {mockSkillBreakdown.map((item, idx) => {
+              // Dynamically calibrate to live proctored assessment score for the category if available
+              let assessedScore = item.score;
+              if (item.category === 'Technical Skills') {
+                assessedScore = assessmentScores.categoryScores?.['Programming'] ?? assessmentScores.technical ?? item.score;
+              } else if (item.category === 'Data & AI') {
+                assessedScore = assessmentScores.categoryScores?.['Data & AI'] ?? item.score;
+              } else if (item.category === 'Communication') {
+                assessedScore = assessmentScores.categoryScores?.['Communication'] ?? assessmentScores.soft ?? item.score;
+              } else if (item.category === 'Problem Solving') {
+                assessedScore = assessmentScores.categoryScores?.['Problem Solving'] ?? item.score;
+              } else if (item.category === 'System Architecture') {
+                const prog = assessmentScores.categoryScores?.['Programming'] ?? 82;
+                const ps = assessmentScores.categoryScores?.['Problem Solving'] ?? 85;
+                assessedScore = Math.round((prog + ps) / 2);
+              }
+
+              const boost = certificates.length > 0 && idx === 0 ? 4 : 0;
+              const currentScore = Math.min(100, assessedScore + boost);
+              const delta = currentScore - item.benchmark;
+              const isExceeding = delta >= 0;
+
+              return (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-slate-900 text-sm">{item.category}</span>
+                      <span
+                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                          isExceeding
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        {isExceeding ? `+${delta}% Above Benchmark` : `${delta}% Below Benchmark`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs">
+                      <span className="font-extrabold text-blue-700">Student: {currentScore}%</span>
+                      <span className="text-slate-400 font-medium">|</span>
+                      <span className="font-bold text-slate-600">Benchmark Cutoff: {item.benchmark}%</span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar with Industry Benchmark Marker */}
+                  <div className="relative w-full bg-slate-200 h-4 rounded-full overflow-visible">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        isExceeding
+                          ? 'bg-gradient-to-r from-blue-600 to-emerald-500'
+                          : 'bg-gradient-to-r from-amber-500 to-amber-600'
+                      }`}
+                      style={{ width: `${currentScore}%` }}
+                    />
+                    <div
+                      className="absolute -top-1 -bottom-1 w-1 bg-slate-900 rounded-full shadow-md z-10"
+                      style={{ left: `${item.benchmark}%` }}
+                      title={`Industry Benchmark Cutoff: ${item.benchmark}%`}
+                    >
+                      <div className="absolute -top-5 -left-4 text-[9px] font-black bg-slate-900 text-white px-1 py-0.2 rounded shadow-xs pointer-events-none">
+                        {item.benchmark}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
           SECTION: SKILLS MATRIX & INVENTORY
@@ -1155,7 +1258,7 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
               </div>
 
               {/* Category Scores */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
                 <div className="p-3 bg-purple-50 rounded-2xl border border-purple-100">
                   <span className="text-[10px] font-bold text-purple-700 uppercase">Technical Core</span>
                   <p className="text-xl font-black text-purple-900">{evaluation.technicalScore}%</p>
@@ -1167,10 +1270,6 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
                 <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100">
                   <span className="text-[10px] font-bold text-emerald-700 uppercase">Communication</span>
                   <p className="text-xl font-black text-emerald-900">{evaluation.softScore}%</p>
-                </div>
-                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
-                  <span className="text-[10px] font-bold text-amber-700 uppercase">Leadership</span>
-                  <p className="text-xl font-black text-amber-900">{evaluation.categoryScores['Leadership'] ?? evaluation.softScore}%</p>
                 </div>
               </div>
 
@@ -1527,41 +1626,83 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
                 Uploaded Certificates &amp; Course Proofs ({certificates.length})
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Certificates and proofs uploaded for your skills and courses.
+                Authentic certificates and proofs verified through our automated backend engine.
               </p>
             </div>
 
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 self-start sm:self-auto">
-              Certificate Proofs
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setVerifyTargetSkill('');
+                setIsVerifyModalOpen(true);
+              }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <FileUp className="w-3.5 h-3.5" /> Verify &amp; Upload Certificate
+            </button>
           </div>
 
           {certificates.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
               <FileUp className="w-8 h-8 text-slate-400 mx-auto" />
               <p className="text-xs font-bold text-slate-700">No certificates uploaded yet.</p>
-              <p className="text-xs text-slate-400">
-                Upload a certificate in the <strong>Skill Gap section</strong> to save your course proofs here!
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Upload course certificates from Coursera, Credly, HackerRank, AWS, or universities to automatically prove your skills and eliminate gaps!
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setVerifyTargetSkill('');
+                  setIsVerifyModalOpen(true);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" /> Verify First Certificate
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {certificates.map((cert) => (
                 <div
                   key={cert.id}
-                  className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 transition-all flex flex-col justify-between group shadow-2xs"
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between group shadow-2xs ${
+                    cert.verificationStatus === 'Suspicious'
+                      ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+                      : cert.verificationStatus === 'Rejected'
+                      ? 'bg-rose-50/50 border-rose-200 hover:border-rose-300'
+                      : 'bg-emerald-50/50 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50'
+                  }`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs ${
+                          cert.verificationStatus === 'Suspicious'
+                            ? 'bg-amber-500 text-white'
+                            : cert.verificationStatus === 'Rejected'
+                            ? 'bg-rose-600 text-white'
+                            : 'bg-emerald-600 text-white'
+                        }`}>
                           <BadgeCheck className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-black text-slate-900 truncate">{cert.skillName}</h4>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                            Uploaded
-                          </span>
+                          <h4 className="text-sm font-black text-slate-900 truncate max-w-[160px]">{cert.skillName}</h4>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                              cert.verificationStatus === 'Suspicious'
+                                ? 'bg-amber-100 text-amber-800'
+                                : cert.verificationStatus === 'Rejected'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {cert.verificationStatus || 'Verified'}
+                            </span>
+                            {cert.trustScore !== undefined && (
+                              <span className="text-[10px] font-bold text-slate-600 font-mono">
+                                • {cert.trustScore}% Trust
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1580,26 +1721,46 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
                       <span className="truncate flex-1 font-semibold text-[11px]">{cert.fileName}</span>
                     </div>
 
-                    <p className="text-[10px] text-slate-400">
-                      Uploaded: {cert.uploadedAt} • {cert.issuer || 'Course / Certificate'}
-                    </p>
+                    <div className="text-[10px] text-slate-500 space-y-0.5">
+                      <p>Issuer: <strong className="text-slate-700">{cert.issuer || 'Course / Certificate'}</strong></p>
+                      {cert.credentialId && (
+                        <p className="font-mono truncate">ID: {cert.credentialId}</p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-3 pt-2 border-t border-emerald-100/60">
-                    {cert.fileDataUrl && (
+                  <div className="flex flex-col gap-1.5 mt-3 pt-2 border-t border-emerald-100/60">
+                    <div className="flex items-center gap-2">
+                      {cert.fileDataUrl && (
+                        <button
+                          onClick={() => setPreviewCert({ name: cert.fileName, file: cert.fileDataUrl!, mime: cert.mimeType })}
+                          className="flex-1 py-1.5 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3" /> View Proof
+                        </button>
+                      )}
                       <button
-                        onClick={() => setPreviewCert({ name: cert.fileName, file: cert.fileDataUrl!, mime: cert.mimeType })}
-                        className="flex-1 py-1.5 bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                        onClick={() => setAuditReportCert({
+                          certificateName: cert.skillName,
+                          issuer: cert.issuer || 'Accredited Issuer',
+                          credentialId: cert.credentialId,
+                          credentialUrl: cert.credentialUrl,
+                          issueDate: cert.uploadedAt,
+                          trustScore: cert.trustScore || 92,
+                          report: cert.verificationReport
+                        })}
+                        className="flex-1 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       >
-                        <Eye className="w-3 h-3" /> View Certificate
+                        <ShieldCheck className="w-3 h-3 text-blue-600" /> Audit Details
                       </button>
-                    )}
+                    </div>
+
                     <button
                       onClick={() => removeSkillCertificate(cert.id)}
-                      className="py-1.5 px-2 bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                      className="w-full py-1 text-slate-400 hover:text-rose-600 text-[11px] font-medium transition-colors cursor-pointer text-center"
                       title="Revert skill to gap"
                     >
-                      Move to Gap
+                      Revert skill back to gap
                     </button>
                   </div>
                 </div>
@@ -1609,112 +1770,7 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
         </div>
       )}
 
-      {/* ──────────────────────────────────────────────────────────────────────────
-          SECTION: INDUSTRY BENCHMARK VS STUDENT PROFILE RADAR
-          ────────────────────────────────────────────────────────────────────────── */}
-      {(activeMode === 'overview' || activeMode === 'radar') && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 mb-1.5">
-                <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-                Industry Benchmark vs. Student Profile
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-slate-900">
-                Student Profile vs. Industry Benchmark Comparison
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Real-time calibration against hiring cutoffs for top engineering &amp; technology enterprises across India.
-              </p>
-            </div>
 
-            <div className="flex items-center gap-4 text-xs font-semibold self-start sm:self-auto bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200">
-              <span className="flex items-center gap-1.5 text-blue-700">
-                <span className="w-3 h-3 rounded-full bg-blue-600 shadow-xs" />
-                Student Profile
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-1.5 h-3.5 rounded-xs bg-slate-700" />
-                Industry Benchmark
-              </span>
-            </div>
-          </div>
-
-          {/* Competency Bars */}
-          <div className="space-y-5">
-            {mockSkillBreakdown.map((item, idx) => {
-              // Dynamically calibrate to live proctored assessment score for the category if available
-              let assessedScore = item.score;
-              if (item.category === 'Technical Skills') {
-                assessedScore = assessmentScores.categoryScores?.['Programming'] ?? assessmentScores.technical ?? item.score;
-              } else if (item.category === 'Data & AI') {
-                assessedScore = assessmentScores.categoryScores?.['Data & AI'] ?? item.score;
-              } else if (item.category === 'Communication') {
-                assessedScore = assessmentScores.categoryScores?.['Communication'] ?? assessmentScores.soft ?? item.score;
-              } else if (item.category === 'Problem Solving') {
-                assessedScore = assessmentScores.categoryScores?.['Problem Solving'] ?? item.score;
-              } else if (item.category === 'Leadership & Collab') {
-                assessedScore = assessmentScores.categoryScores?.['Leadership'] ?? item.score;
-              } else if (item.category === 'System Architecture') {
-                const prog = assessmentScores.categoryScores?.['Programming'] ?? 82;
-                const ps = assessmentScores.categoryScores?.['Problem Solving'] ?? 85;
-                assessedScore = Math.round((prog + ps) / 2);
-              }
-
-              const boost = certificates.length > 0 && idx === 0 ? 4 : 0;
-              const currentScore = Math.min(100, assessedScore + boost);
-              const delta = currentScore - item.benchmark;
-              const isExceeding = delta >= 0;
-
-              return (
-                <div key={idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-slate-900 text-sm">{item.category}</span>
-                      <span
-                        className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                          isExceeding
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        {isExceeding ? `+${delta}% Above Benchmark` : `${delta}% Below Benchmark`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="font-extrabold text-blue-700">Student: {currentScore}%</span>
-                      <span className="text-slate-400 font-medium">|</span>
-                      <span className="font-bold text-slate-600">Benchmark Cutoff: {item.benchmark}%</span>
-                    </div>
-                  </div>
-
-                  {/* Progress bar with Industry Benchmark Marker */}
-                  <div className="relative w-full bg-slate-200 h-4 rounded-full overflow-visible">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        isExceeding
-                          ? 'bg-gradient-to-r from-blue-600 to-emerald-500'
-                          : 'bg-gradient-to-r from-amber-500 to-amber-600'
-                      }`}
-                      style={{ width: `${currentScore}%` }}
-                    />
-                    <div
-                      className="absolute -top-1 -bottom-1 w-1 bg-slate-900 rounded-full shadow-md z-10"
-                      style={{ left: `${item.benchmark}%` }}
-                      title={`Industry Benchmark Cutoff: ${item.benchmark}%`}
-                    >
-                      <div className="absolute -top-5 -left-4 text-[9px] font-black bg-slate-900 text-white px-1 py-0.2 rounded shadow-xs pointer-events-none">
-                        {item.benchmark}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ──────────────────────────────────────────────────────────────────────────
           SECTION: RECOMMENDED COURSES TO BRIDGE GAPS
@@ -1868,6 +1924,26 @@ export const SkillProfileView: React.FC<SkillProfileViewProps> = ({ initialMode 
           </div>
         </div>
       )}
+
+      {/* Certificate Verification Modal */}
+      <CertificateVerificationModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        initialSkillName={verifyTargetSkill}
+      />
+
+      {/* Certificate Audit Report Modal */}
+      <CertificateAuditReportModal
+        isOpen={Boolean(auditReportCert)}
+        onClose={() => setAuditReportCert(null)}
+        certificateName={auditReportCert?.certificateName || ''}
+        issuer={auditReportCert?.issuer || ''}
+        credentialId={auditReportCert?.credentialId}
+        credentialUrl={auditReportCert?.credentialUrl}
+        issueDate={auditReportCert?.issueDate}
+        trustScore={auditReportCert?.trustScore}
+        report={auditReportCert?.report}
+      />
     </div>
   );
 };

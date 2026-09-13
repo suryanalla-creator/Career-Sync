@@ -11,11 +11,15 @@ import {
   BadgeCheck,
   Check,
   Target,
-  GraduationCap
+  GraduationCap,
+  ShieldCheck,
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import { Opportunity } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { checkOpportunityRoleAndBranchMatch } from '../../utils/opportunityRoleBranchMatcher';
+import { evaluateBenchmarkEligibility } from '../../utils/benchmarkEligibility';
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -30,7 +34,7 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
   filterRoleId,
   filterBranch
 }) => {
-  const { toggleSaveOpportunity, applyToOpportunity, getOpportunityMatch, selectedCareerRoleId, studentProfile } = useApp();
+  const { toggleSaveOpportunity, applyToOpportunity, getOpportunityMatch, selectedCareerRoleId, studentProfile, certificates } = useApp();
 
   // Role and Branch match evaluation
   const activeRoleId = filterRoleId || selectedCareerRoleId || 'fullstack-engineer';
@@ -40,6 +44,14 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
   // Accurate real-time skill matching calculation
   const matchResult = getOpportunityMatch(opportunity);
   const accurateMatchPercentage = matchResult.matchPercentage;
+
+  // Minimum Industry Benchmark Eligibility Evaluation
+  const benchmarkEligibility = evaluateBenchmarkEligibility(
+    opportunity,
+    studentProfile,
+    accurateMatchPercentage,
+    (certificates || []).length
+  );
 
   const getMatchBadgeColor = (percentage: number) => {
     if (percentage >= 85) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -95,6 +107,33 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
 
         {/* Career Role Track & B-Tech Branch Eligibility Badges */}
         <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+          {/* Closed / Benchmark Eligibility Badge */}
+          {isClosed ? (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 border border-rose-200"
+              title="Applications and bookings are closed by recruiter."
+            >
+              <AlertCircle className="w-3 h-3 text-rose-600" />
+              Bookings Closed
+            </span>
+          ) : benchmarkEligibility.isEligible ? (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200"
+              title="You meet all minimum industry benchmark criteria for this role."
+            >
+              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+              Eligible to Apply
+            </span>
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200"
+              title={`Benchmark gap: ${benchmarkEligibility.unmetLabels.join(', ')}`}
+            >
+              <AlertCircle className="w-3 h-3 text-amber-600" />
+              Benchmark Gap ({benchmarkEligibility.metCriteria}/{benchmarkEligibility.totalCriteria})
+            </span>
+          )}
+
           {roleBranchMatch.roleMatchBadgeText && (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
               <Target className="w-3 h-3 text-indigo-600" />
@@ -127,6 +166,12 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
             <DollarSign className="w-3.5 h-3.5 text-blue-600" />
             {opportunity.salaryOrStipend}
           </span>
+          {opportunity.postedDate && (
+            <span className="flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100 font-medium text-slate-500">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              Posted: {opportunity.postedDate}
+            </span>
+          )}
         </div>
 
         {/* Required Skills Tags with Accurate Match Badging */}
@@ -222,13 +267,22 @@ export const OpportunityCard: React.FC<OpportunityCardProps> = ({
             >
               Closed
             </span>
-          ) : (
+          ) : benchmarkEligibility.isEligible ? (
             <button
               onClick={() => applyToOpportunity(opportunity)}
-              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
             >
               Apply
               <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => onViewDetails(opportunity)}
+              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+              title="You must meet the minimum industry benchmark requirements to apply. Click to view criteria checklist."
+            >
+              <Lock className="w-3.5 h-3.5 text-amber-600" />
+              Criteria Gap
             </button>
           )}
         </div>
