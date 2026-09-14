@@ -24,7 +24,9 @@ import {
   ShieldCheck,
   HelpCircle,
   ArrowRight,
-  AlertCircle
+  AlertCircle,
+  History,
+  Building2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { calculateProfileCompletion } from '../../utils/skillMatcher';
@@ -95,11 +97,18 @@ export const Sidebar: React.FC = () => {
     { id: 'settings', label: 'Admin Settings', icon: Settings }
   ];
 
+  const adminNavItems: NavItem[] = [
+    { id: 'institution-verification', label: 'Institution Verification', icon: ShieldCheck, highlight: true },
+    { id: 'industry-verification', label: 'Industry Verification', icon: Building2, highlight: true },
+    { id: 'logs', label: 'Audit & Login Logs', icon: History }
+  ];
+
   const getNavItems = () => {
     switch (role) {
       case 'student': return studentNavItems;
       case 'industry': return industryNavItems;
       case 'institution': return institutionNavItems;
+      case 'admin': return adminNavItems;
       default: return [];
     }
   };
@@ -130,6 +139,7 @@ export const Sidebar: React.FC = () => {
             {role === 'student' && 'Student Portal'}
             {role === 'industry' && 'Corporate Suite'}
             {role === 'institution' && 'Institutional Admin'}
+            {role === 'admin' && 'Central Master Authority'}
           </div>
         )}
 
@@ -235,6 +245,18 @@ export const Sidebar: React.FC = () => {
               <p className="font-bold text-purple-900 text-[11px]">Active Hiring Sprint</p>
               <p className="text-[10px] text-purple-700 mt-0.5">
                 3 campus placement drives currently open.
+              </p>
+            </div>
+          )}
+
+          {role === 'admin' && (
+            <div className="p-2.5 bg-rose-50/70 rounded-xl border border-rose-200 text-xs">
+              <div className="flex items-center gap-2 text-rose-900 font-bold text-[11px]">
+                <ShieldCheck className="w-4 h-4 text-rose-600" />
+                Root Authority
+              </div>
+              <p className="text-[10px] text-rose-700 mt-0.5">
+                Full verification rights & audit trails enabled.
               </p>
             </div>
           )}

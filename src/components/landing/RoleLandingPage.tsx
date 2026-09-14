@@ -162,7 +162,8 @@ export const RoleLandingPage: React.FC<RoleLandingPageProps> = ({ roleType }) =>
     }
   };
 
-  const config = roleConfigs[roleType];
+  const safeRole = (roleType === 'admin' ? 'institution' : roleType) as 'student' | 'industry' | 'institution';
+  const config = roleConfigs[safeRole];
   const Icon = config.icon;
 
   return (
@@ -230,7 +231,7 @@ export const RoleLandingPage: React.FC<RoleLandingPageProps> = ({ roleType }) =>
       <section className="py-10 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-            {config.stats.map((st, i) => (
+            {config.stats.map((st: { label: string; val: string }, i: number) => (
               <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                 <p className="text-2xl sm:text-3xl font-black text-slate-900">{st.val}</p>
                 <p className="text-xs font-medium text-slate-500 mt-1">{st.label}</p>
@@ -253,7 +254,7 @@ export const RoleLandingPage: React.FC<RoleLandingPageProps> = ({ roleType }) =>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {config.features.map((f, idx) => (
+            {config.features.map((f: { title: string; desc: string }, idx: number) => (
               <div
                 key={idx}
                 className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-md transition-all space-y-3"

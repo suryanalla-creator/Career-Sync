@@ -46,6 +46,11 @@ export const LoginForm: React.FC = () => {
       email: 'institution@careersync.com',
       pass: 'admin123',
       label: 'Dean Demo'
+    },
+    admin: {
+      email: 'admin@careersync.com',
+      pass: 'AdminSecure@2026!',
+      label: 'Master Admin'
     }
   };
 
@@ -101,7 +106,8 @@ export const LoginForm: React.FC = () => {
   const roleDisplayNames: Record<AuthRole, string> = {
     student: 'Student',
     industry: 'Industry',
-    institution: 'Institution'
+    institution: 'Institution',
+    admin: 'Master Admin'
   };
 
   return (
@@ -132,7 +138,7 @@ export const LoginForm: React.FC = () => {
           </span>
           <span className="text-[10px] text-blue-600 font-medium">1-Click Auto-Fill</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {(Object.keys(demoAccounts) as AuthRole[]).map((rKey) => (
             <button
               key={rKey}

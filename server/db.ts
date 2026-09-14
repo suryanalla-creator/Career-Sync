@@ -371,6 +371,61 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_certifications_user ON certifications(user_id);
     CREATE INDEX IF NOT EXISTS idx_internships_user ON internships(user_id);
     CREATE INDEX IF NOT EXISTS idx_placement_drives_status ON placement_drives(status);
+
+    -- ==========================================
+    -- ADMIN VERIFICATION & AUDIT TABLES
+    -- ==========================================
+    CREATE TABLE IF NOT EXISTS pending_verifications (
+      id TEXT PRIMARY KEY,
+      role TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      organization TEXT NOT NULL,
+      title TEXT,
+      phone TEXT,
+      location TEXT,
+      website TEXT,
+      sector_or_type TEXT,
+      accreditation_or_size TEXT,
+      certificate_data TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      rejection_reason TEXT,
+      default_temp_password TEXT,
+      submitted_at TEXT NOT NULL,
+      reviewed_at TEXT,
+      reviewed_by TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_pending_verifications_role ON pending_verifications(role);
+    CREATE INDEX IF NOT EXISTS idx_pending_verifications_status ON pending_verifications(status);
+
+    CREATE TABLE IF NOT EXISTS login_audit_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      role TEXT NOT NULL,
+      device_name TEXT NOT NULL,
+      ip_address TEXT,
+      location TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      status TEXT DEFAULT 'Success'
+    );
+    CREATE INDEX IF NOT EXISTS idx_login_audit_logs_role ON login_audit_logs(role);
+    CREATE INDEX IF NOT EXISTS idx_login_audit_logs_timestamp ON login_audit_logs(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_login_audit_logs_user_email ON login_audit_logs(user_email);
+
+    CREATE TABLE IF NOT EXISTS dispatched_emails (
+      id TEXT PRIMARY KEY,
+      recipient_email TEXT NOT NULL,
+      recipient_name TEXT,
+      subject TEXT NOT NULL,
+      body_html TEXT NOT NULL,
+      temp_password TEXT,
+      status TEXT NOT NULL DEFAULT 'Sent',
+      sent_at TEXT NOT NULL,
+      error_message TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_dispatched_emails_recipient ON dispatched_emails(recipient_email);
   `);
 
   try { db.exec('ALTER TABLE candidates ADD COLUMN student_id TEXT;'); } catch {}
@@ -631,6 +686,127 @@ export function initDatabase() {
 
   seedDataIfEmpty();
   seedExtraTablesIfEmpty();
+  ensureAdminAndAuditData();
+}
+
+export function ensureAdminAndAuditData() {
+  // 1. Single Master Admin Profile
+  const existingAdmin = db.prepare("SELECT id FROM users WHERE role = 'admin' OR id = 'admin-root-01'").get();
+  if (!existingAdmin) {
+    const salt = bcrypt.genSaltSync(10);
+    const adminHash = bcrypt.hashSync('AdminSecure@2026!', salt);
+    db.prepare(`
+      INSERT INTO users (id, email, password_hash, role, name, title, organization, avatar, phone, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'admin-root-01',
+      'admin@careersync.com',
+      adminHash,
+      'admin',
+      'System Master Administrator',
+      'Chief Platform Auditor & Verifier',
+      'CAREER SYNC Central Administration',
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      '+91 99000 00001',
+      new Date().toISOString()
+    );
+    console.log('🛡️ Master Admin provisioned: admin@careersync.com (ID: admin-root-01, Pass: AdminSecure@2026!)');
+  }
+
+  // 2. Initial Sample Login Audit Logs (Student, Industry, Institution, Admin)
+  const logCount = (db.prepare('SELECT COUNT(*) as c FROM login_audit_logs').get() as any).c;
+  if (logCount === 0) {
+    const insertLog = db.prepare(`
+      INSERT INTO login_audit_logs (id, user_id, user_name, user_email, role, device_name, ip_address, location, timestamp, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const now = Date.now();
+    insertLog.run('log-01', 'usr-student-1', 'Ananya Rao', 'student@careersync.com', 'student', 'MacBook Pro 16" (macOS 14.5 / Chrome 128)', '103.212.145.22', 'Bangalore, Karnataka, India', new Date(now - 1000 * 60 * 35).toISOString(), 'Success');
+    insertLog.run('log-02', 'usr-industry-1', 'Vikramaditya Sen', 'industry@careersync.com', 'industry', 'Dell Precision 5570 (Windows 11 / Edge 128)', '49.207.180.14', 'Hyderabad, Telangana, India', new Date(now - 1000 * 60 * 120).toISOString(), 'Success');
+    insertLog.run('log-03', 'usr-institution-1', 'Dr. Ramesh Sharma', 'institution@careersync.com', 'institution', 'Lenovo ThinkPad X1 (Windows 11 / Chrome 128)', '103.212.145.89', 'Bangalore, Karnataka, India', new Date(now - 1000 * 60 * 240).toISOString(), 'Success');
+    insertLog.run('log-04', 'usr-std-0022', 'Krish Gupta', 'krish.gupta22@apextech.edu.in', 'student', 'Samsung Galaxy S24 Ultra (Android 14 / Chrome Mobile)', '152.58.16.4', 'Mysore, Karnataka, India', new Date(now - 1000 * 60 * 480).toISOString(), 'Success');
+    insertLog.run('log-05', 'admin-root-01', 'System Master Administrator', 'admin@careersync.com', 'admin', 'Secured Admin Terminal (Ubuntu 24.04 LTS / Chrome 128)', '127.0.0.1', 'Bangalore Central, Karnataka, India', new Date(now - 1000 * 60 * 600).toISOString(), 'Success');
+  }
+
+  // 3. Initial Pending Verifications for Admin testing
+  const pendingCount = (db.prepare('SELECT COUNT(*) as c FROM pending_verifications').get() as any).c;
+  if (pendingCount === 0) {
+    const insertPending = db.prepare(`
+      INSERT INTO pending_verifications (
+        id, role, email, name, organization, title, phone, location, website,
+        sector_or_type, accreditation_or_size, certificate_data, status, submitted_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    insertPending.run(
+      'verif-inst-001',
+      'institution',
+      'principal@stxavier-tech.edu.in',
+      'Dr. Francis Augustine',
+      'St. Xavier Institute of Advanced Technology',
+      'Principal & Academic Director',
+      '+91 98450 12345',
+      'Bangalore, Karnataka, India',
+      'https://stxavier-tech.edu.in',
+      'Autonomous Engineering College',
+      'AICTE Approved • NAAC A++ Accredited • VTU Affiliated',
+      JSON.stringify([
+        {
+          docName: 'AICTE Extension of Approval (EoA) 2025-26',
+          issuingAuthority: 'All India Council for Technical Education, New Delhi',
+          certNumber: 'AICTE/SW/1-932148201/2025',
+          issueDate: '2025-05-18',
+          fileUrl: 'https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=800&auto=format&fit=crop&q=80',
+          fileType: 'image/jpeg'
+        },
+        {
+          docName: 'Govt. of Karnataka Higher Education Affiliation Certificate',
+          issuingAuthority: 'Department of Higher Education, Govt. of Karnataka',
+          certNumber: 'ED-84-URT-2024/KA',
+          issueDate: '2024-07-10',
+          fileUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
+          fileType: 'image/jpeg'
+        }
+      ]),
+      'pending',
+      new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
+    );
+
+    insertPending.run(
+      'verif-ind-001',
+      'industry',
+      'careers@neuralgrid.ai',
+      'Aarav Nambiar',
+      'NeuralGrid AI Technologies Pvt Ltd',
+      'VP of Engineering & Global Talent',
+      '+91 98200 67890',
+      'Hyderabad, Telangana, India',
+      'https://neuralgrid.ai',
+      'Artificial Intelligence & Cloud Automation',
+      '500-1,000 Employees • DPIIT Recognized Startup',
+      JSON.stringify([
+        {
+          docName: 'Ministry of Corporate Affairs Certificate of Incorporation',
+          issuingAuthority: 'Registrar of Companies, Ministry of Corporate Affairs, Govt of India',
+          certNumber: 'CIN: U72900KA2022PTC159032',
+          issueDate: '2022-03-14',
+          fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=800&auto=format&fit=crop&q=80',
+          fileType: 'image/jpeg'
+        },
+        {
+          docName: 'GST Registration Certificate (Form GST REG-06)',
+          issuingAuthority: 'Goods and Services Tax Network, Govt of India',
+          certNumber: 'GSTIN: 29AAACN8491M1ZU',
+          issueDate: '2022-04-01',
+          fileUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&auto=format&fit=crop&q=80',
+          fileType: 'image/jpeg'
+        }
+      ]),
+      'pending',
+      new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString()
+    );
+  }
 }
 
 export function restoreOriginalDemoDatabase() {

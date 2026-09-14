@@ -10,6 +10,7 @@ import { studentsRouter } from './routes/students';
 import { commonRouter } from './routes/common';
 import { aiRouter } from './routes/ai';
 import { certificatesRouter } from './routes/certificates';
+import { adminRouter } from './routes/admin';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api/applications', applicationsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/certificates', certificatesRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api', commonRouter);
 
 // Error handling middleware

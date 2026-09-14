@@ -37,6 +37,11 @@ const DEMO_CREDENTIALS: Record<UserRole, { email: string; pass: string; label: s
     email: 'student@careersync.com',
     pass: 'student123',
     label: 'Student Demo (student123)'
+  },
+  admin: {
+    email: 'admin@careersync.com',
+    pass: 'AdminSecure@2026!',
+    label: 'Master Admin (AdminSecure@2026!)'
   }
 };
 

@@ -10,7 +10,10 @@ import {
   AuthRole,
   InternshipRecord,
   VerificationReport,
-  CertificationItem
+  CertificationItem,
+  PendingVerificationItem,
+  CertificateProofItem,
+  LoginAuditLogItem
 } from '../types';
 
 const TOKEN_KEY = 'careersync_auth_token';
@@ -66,10 +69,32 @@ async function request<T = any>(endpoint: string, options: RequestInit = {}): Pr
 export const api = {
   // Authentication
   auth: {
-    login: async (role: AuthRole, email: string, pass: string) => {
-      const data = await request<{ success: boolean; token: string; user: any; message: string }>('/api/auth/login', {
+    login: async (role: AuthRole, email: string, pass: string, meta?: { deviceName?: string; location?: string }) => {
+      let deviceName = meta?.deviceName;
+      if (!deviceName && typeof window !== 'undefined') {
+        const ua = window.navigator.userAgent;
+        let os = 'PC';
+        if (/windows/i.test(ua)) os = 'Windows 11 / 10 PC';
+        else if (/macintosh|mac os x/i.test(ua)) os = 'MacBook Pro (macOS)';
+        else if (/android/i.test(ua)) os = 'Android Mobile';
+        else if (/iphone|ipad/i.test(ua)) os = 'Apple iOS Device';
+        else if (/linux/i.test(ua)) os = 'Linux Workstation';
+        deviceName = `${os} (${window.navigator.language || 'en-US'})`;
+      }
+
+      let location = meta?.location;
+      if (!location && typeof Intl !== 'undefined') {
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          location = tz.includes('Calcutta') || tz.includes('Kolkata') || tz.includes('Asia') ? 'Bangalore, Karnataka, India' : tz;
+        } catch {
+          location = 'Bangalore, Karnataka, India';
+        }
+      }
+
+      const data = await request<{ success: boolean; token: string; user: any; message: string; isPendingVerification?: boolean }>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ role, email, password: pass })
+        body: JSON.stringify({ role, email, password: pass, deviceName, location })
       });
       if (data.token && data.user) {
         setStoredAuth(data.token, data.user);
@@ -77,7 +102,7 @@ export const api = {
       return data;
     },
     register: async (role: AuthRole, payload: any) => {
-      const data = await request<{ success: boolean; token: string; user: any; message: string }>('/api/auth/register', {
+      const data = await request<{ success: boolean; token?: string; user?: any; message: string; isPendingVerification?: boolean; verificationId?: string }>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ role, ...payload })
       });
@@ -600,6 +625,66 @@ export const api = {
         count: number;
         questions: any[];
       }>(`/api/ai/trained-questions?${q.toString()}`);
+    }
+  },
+
+  // Admin Central Authority
+  admin: {
+    getVerifications: async (params?: { role?: string; status?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.role) q.append('role', params.role);
+      if (params?.status) q.append('status', params.status);
+      return request<{ success: boolean; verifications: PendingVerificationItem[] }>(`/api/admin/verifications?${q.toString()}`);
+    },
+    getCertificates: async (verificationId: string) => {
+      return request<{
+        success: boolean;
+        verificationId: string;
+        organization: string;
+        role: string;
+        applicantName: string;
+        certificates: CertificateProofItem[];
+        confidentialityNotice: string;
+      }>(`/api/admin/verifications/${verificationId}/certificates`);
+    },
+    approveVerification: async (verificationId: string) => {
+      return request<{
+        success: boolean;
+        message: string;
+        generatedCredentials: any;
+        emailDispatched: boolean;
+        emailPreviewUrl?: string;
+      }>(`/api/admin/verifications/${verificationId}/approve`, {
+        method: 'POST'
+      });
+    },
+    rejectVerification: async (verificationId: string, reason: string) => {
+      return request<{ success: boolean; message: string }>(`/api/admin/verifications/${verificationId}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+      });
+    },
+    getLogs: async (params?: { role?: string; search?: string; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.role) q.append('role', params.role);
+      if (params?.search) q.append('search', params.search);
+      if (params?.limit) q.append('limit', String(params.limit));
+      return request<{
+        success: boolean;
+        logs: LoginAuditLogItem[];
+        stats: { total: number; student: number; industry: number; institution: number };
+      }>(`/api/admin/logs?${q.toString()}`);
+    },
+    getStats: async () => {
+      return request<{
+        success: boolean;
+        stats: {
+          pendingInstitutions: number;
+          pendingIndustries: number;
+          totalLogins: number;
+          dispatchedEmails: number;
+        };
+      }>('/api/admin/stats');
     }
   }
 };

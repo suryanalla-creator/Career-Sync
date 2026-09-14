@@ -40,8 +40,8 @@ interface AppContextType {
   isGetStartedModalOpen: boolean;
   setIsGetStartedModalOpen: (open: boolean) => void;
   navigateToRole: (role: AuthRole) => void;
-  loginUser: (role: AuthRole, email: string, pass: string) => Promise<{ success: boolean; message: string }>;
-  registerUser: (role: AuthRole, data: any) => Promise<{ success: boolean; message: string }>;
+  loginUser: (role: AuthRole, email: string, pass: string, meta?: any) => Promise<{ success: boolean; message: string; isPendingVerification?: boolean }>;
+  registerUser: (role: AuthRole, data: any) => Promise<{ success: boolean; message: string; isPendingVerification?: boolean }>;
   logoutUser: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -699,7 +699,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#/', '').replace('#', '');
-      if (hash.startsWith('student/') || hash.startsWith('industry/') || hash.startsWith('institution/')) {
+      if (hash.startsWith('student/') || hash.startsWith('industry/') || hash.startsWith('institution/') || hash.startsWith('admin/')) {
         const parts = hash.split('/');
         setRoleState(parts[0] as UserRole);
         setPageViewState('portal');
@@ -737,14 +737,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const navigateToRole = (authRole: AuthRole) => {
     setRoleState(authRole);
     setPageViewState('portal');
-    setActiveTab('dashboard');
-    window.location.hash = `#/${authRole}/dashboard`;
+    const defaultTab = authRole === 'admin' ? 'institution-verification' : 'dashboard';
+    setActiveTab(defaultTab);
+    window.location.hash = `#/${authRole}/${defaultTab}`;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const loginUser = async (authRole: AuthRole, email: string, pass: string): Promise<{ success: boolean; message: string }> => {
+  const loginUser = async (authRole: AuthRole, email: string, pass: string, meta?: any): Promise<{ success: boolean; message: string; isPendingVerification?: boolean }> => {
     try {
-      const res = await api.auth.login(authRole, email, pass);
+      const res = await api.auth.login(authRole, email, pass, meta);
       if (res && res.success) {
         // Clear old cached profile so that the fresh authenticated profile is loaded
         if (typeof window !== 'undefined') {
@@ -760,6 +761,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const errorMsg = err?.message || 'Invalid email or password.';
       console.warn('Authentication rejected:', errorMsg);
 
+      if (errorMsg.includes('verification') || errorMsg.includes('3-day')) {
+        return { success: false, isPendingVerification: true, message: errorMsg };
+      }
+
       // Only if the server is physically offline (network error), check STRICT matching demo credentials
       const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError');
       if (isNetworkError) {
@@ -767,17 +772,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const isDemoStudent = authRole === 'student' && normalizedEmail === 'student@careersync.com' && pass === 'student123';
         const isDemoIndustry = authRole === 'industry' && normalizedEmail === 'industry@careersync.com' && pass === 'industry123';
         const isDemoInstitution = authRole === 'institution' && normalizedEmail === 'institution@careersync.com' && pass === 'admin123';
+        const isDemoAdmin = authRole === 'admin' && normalizedEmail === 'admin@careersync.com' && pass === 'AdminSecure@2026!';
 
-        if (isDemoStudent || isDemoIndustry || isDemoInstitution) {
+        if (isDemoStudent || isDemoIndustry || isDemoInstitution || isDemoAdmin) {
           setStoredAuth(createTimestampToken('demo-token'), {
-            id: `usr-${authRole}-1`,
+            id: authRole === 'admin' ? 'admin-root-01' : `usr-${authRole}-1`,
             email: normalizedEmail,
             role: authRole,
-            name: authRole === 'student' ? 'Student' : authRole === 'industry' ? 'Vikramaditya Sen' : 'Dr. Ramesh Sharma'
+            name: authRole === 'student' ? 'Student' : authRole === 'industry' ? 'Vikramaditya Sen' : authRole === 'institution' ? 'Dr. Ramesh Sharma' : 'System Master Administrator'
           });
           navigateToRole(authRole);
           triggerConfetti();
-          return { success: true, message: 'Signed in via demo credentials.' };
+          return { success: true, message: 'Signed in via credentials.' };
         }
       }
 
@@ -785,10 +791,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const registerUser = async (authRole: AuthRole, data: any): Promise<{ success: boolean; message: string }> => {
+  const registerUser = async (authRole: AuthRole, data: any): Promise<{ success: boolean; message: string; isPendingVerification?: boolean }> => {
     try {
       const res = await api.auth.register(authRole, data);
       if (res && res.success) {
+        // If pending verification, do NOT log in or navigate to portal
+        if (res.isPendingVerification) {
+          return {
+            success: true,
+            isPendingVerification: true,
+            message: res.message
+          };
+        }
+
         if (typeof window !== 'undefined') {
           localStorage.removeItem('career_sync_student_profile');
         }
@@ -830,7 +845,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             overall: 0,
             categoryScores: {}
           });
-          // Predefined user-friendly instructions modal automatically appears for newly registered accounts
           setIsOnboardingGuideOpen(true);
         }
         navigateToRole(authRole);

@@ -1,4 +1,4 @@
-export type UserRole = 'landing' | 'student' | 'industry' | 'institution';
+export type UserRole = 'landing' | 'student' | 'industry' | 'institution' | 'admin';
 
 export type ActivePageView =
   | 'landing'
@@ -12,7 +12,50 @@ export type ActivePageView =
   | 'forgot-password'
   | 'portal';
 
-export type AuthRole = 'student' | 'industry' | 'institution';
+export type AuthRole = 'student' | 'industry' | 'institution' | 'admin';
+
+export interface CertificateProofItem {
+  docName: string;
+  issuingAuthority: string;
+  certNumber: string;
+  issueDate: string;
+  fileUrl: string;
+  fileType?: string;
+}
+
+export interface PendingVerificationItem {
+  id: string;
+  role: 'institution' | 'industry';
+  email: string;
+  name: string;
+  organization: string;
+  title?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  sector_or_type?: string;
+  accreditation_or_size?: string;
+  certificates: CertificateProofItem[];
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  default_temp_password?: string;
+  submitted_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+}
+
+export interface LoginAuditLogItem {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  role: string;
+  device_name: string;
+  ip_address?: string;
+  location: string;
+  timestamp: string;
+  status: string;
+}
 
 export interface StudentRegistrationData {
   fullName: string;
@@ -37,8 +80,9 @@ export interface IndustryRegistrationData {
   companySize: string;
   location: string;
   website: string;
-  password: string;
-  confirmPassword: string;
+  certificates?: CertificateProofItem[];
+  password?: string;
+  confirmPassword?: string;
 }
 
 export interface InstitutionRegistrationData {
@@ -50,8 +94,9 @@ export interface InstitutionRegistrationData {
   location: string;
   website: string;
   accreditationInfo: string;
-  password: string;
-  confirmPassword: string;
+  certificates?: CertificateProofItem[];
+  password?: string;
+  confirmPassword?: string;
 }
 
 export interface UserAccount {

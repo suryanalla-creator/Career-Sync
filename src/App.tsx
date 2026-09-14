@@ -56,6 +56,9 @@ import { IndustryCollaborationHubView } from './components/institution/IndustryC
 import { InstitutionCoursesView } from './components/institution/InstitutionCoursesView';
 import { FacultyProfileView } from './components/academician/FacultyProfileView';
 
+// Admin Views
+import { AdminPortalView } from './components/admin/AdminPortalView';
+
 const MainContent: React.FC = () => {
   const { role, pageView, activeTab, selectedOpportunity, setSelectedOpportunity } = useApp();
 
@@ -155,6 +158,9 @@ const MainContent: React.FC = () => {
           case 'collab-hub': return <IndustryCollaborationHubView />;
           default: return <InstitutionDashboard />;
         }
+
+      case 'admin':
+        return <AdminPortalView />;
 
       default:
         return <LandingPage />;

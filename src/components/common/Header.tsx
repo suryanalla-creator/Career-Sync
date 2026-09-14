@@ -82,6 +82,14 @@ export const Header: React.FC = () => {
           sub: 'Dean of Placements',
           avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&auto=format&fit=crop&q=80'
         };
+      case 'admin':
+        return {
+          title: 'Master Administrator',
+          badge: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          name: 'Platform Administrator',
+          sub: 'Central Verification Board',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+        };
       default:
         return {
           title: 'Public Portal',

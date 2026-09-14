@@ -52,6 +52,15 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       activeBorder: 'border-amber-600',
       activeBg: 'bg-amber-50 text-amber-700',
       activeText: 'text-amber-700'
+    },
+    {
+      id: 'admin',
+      label: 'Master Admin',
+      icon: Briefcase,
+      color: 'text-indigo-600',
+      activeBorder: 'border-indigo-600',
+      activeBg: 'bg-indigo-50 text-indigo-700',
+      activeText: 'text-indigo-700'
     }
   ];
 
@@ -60,7 +69,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({
       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
         {label}:
       </label>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {roles.map((r) => {
           const Icon = r.icon;
           const isSelected = selectedRole === r.id;

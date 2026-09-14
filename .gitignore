@@ -25,3 +25,6 @@ dist-ssr
 
 # Scratch & test scripts
 scratch/
+
+# Local hardware / drivers
+DRIVERS/
